@@ -220,7 +220,8 @@ HEADERS += \
     lib/printing/lc_printing.h \
     actions/lc_actiondrawlinepolygon3.h \
     main/lc_application.h \
-    main/util_log.h
+    main/util_log.h \
+    ui/qg_videowidget.h
 
 SOURCES += \
     lib/actions/rs_actioninterface.cpp \
@@ -312,7 +313,8 @@ SOURCES += \
     lib/printing/lc_printing.cpp \
     actions/lc_actiondrawlinepolygon3.cpp \
     main/lc_application.cpp \
-    main/util_log.cpp
+    main/util_log.cpp \
+    ui/qg_videowidget.cpp
 
 # ################################################################################
 # Command

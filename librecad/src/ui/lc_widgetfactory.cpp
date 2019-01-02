@@ -32,6 +32,7 @@
 #include "qg_snaptoolbar.h"
 #include "qg_blockwidget.h"
 #include "qg_layerwidget.h"
+#include "qg_videowidget.h"
 #include "qg_librarywidget.h"
 #include "qg_commandwidget.h"
 #include "qg_selectionwidget.h"
@@ -312,6 +313,17 @@ void LC_WidgetFactory::createRightSidebar(QG_ActionHandler* action_handler)
     connect(dock_command, SIGNAL(dockLocationChanged(Qt::DockWidgetArea)),
             main_window, SLOT(modifyCommandTitleBar(Qt::DockWidgetArea)));
 
+    QDockWidget* dock_video = new QDockWidget(main_window);
+    dock_video->setWindowTitle(QC_ApplicationWindow::tr("Video Integration"));
+    dock_video->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+    dock_video->setObjectName("video_dockwidget");
+    video_widget = new QG_VideoWidget(dock_video, "Video");
+    video_widget->setFocusPolicy(Qt::NoFocus);
+    connect(video_widget, SIGNAL(escape()), main_window, SLOT(slotFocus()));
+    connect(main_window, SIGNAL(windowsChanged(bool)), video_widget, SLOT(setEnabled(bool)));
+    dock_video->setWidget(video_widget);
+
+    main_window->addDockWidget(Qt::RightDockWidgetArea, dock_video);
     main_window->addDockWidget(Qt::RightDockWidgetArea, dock_library);
     main_window->tabifyDockWidget(dock_library, dock_block);
     main_window->tabifyDockWidget(dock_block, dock_layer);

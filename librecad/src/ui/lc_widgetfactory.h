@@ -13,6 +13,7 @@ class QActionGroup;
 
 class QG_PenToolBar;
 class QG_SnapToolBar;
+class QG_VideoWidget;
 class QG_LayerWidget;
 class QG_BlockWidget;
 class QG_ActionHandler;
@@ -49,6 +50,7 @@ public:
     QG_PenToolBar* pen_toolbar;
     QToolBar* options_toolbar;
 
+    QG_VideoWidget* video_widget;
     QG_LayerWidget* layer_widget;
     QG_BlockWidget* block_widget;
     QG_LibraryWidget* library_widget;
