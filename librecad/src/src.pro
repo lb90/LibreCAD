@@ -219,7 +219,8 @@ HEADERS += \
     lib/engine/lc_undosection.h \
     lib/printing/lc_printing.h \
     actions/lc_actiondrawlinepolygon3.h \
-    main/lc_application.h
+    main/lc_application.h \
+    main/util_log.h
 
 SOURCES += \
     lib/actions/rs_actioninterface.cpp \
@@ -310,7 +311,8 @@ SOURCES += \
     lib/engine/rs.cpp \
     lib/printing/lc_printing.cpp \
     actions/lc_actiondrawlinepolygon3.cpp \
-    main/lc_application.cpp
+    main/lc_application.cpp \
+    main/util_log.cpp
 
 # ################################################################################
 # Command
