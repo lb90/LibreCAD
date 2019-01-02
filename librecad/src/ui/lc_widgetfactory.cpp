@@ -44,7 +44,7 @@
 #include <QFile>
 #include <QMenuBar>
 #include <QActionGroup>
-
+#include <QMdiArea>
 
 LC_WidgetFactory::LC_WidgetFactory(QC_ApplicationWindow* main_win,
                                    QMap<QString, QAction*>& action_map,
@@ -320,6 +320,9 @@ void LC_WidgetFactory::createRightSidebar(QG_ActionHandler* action_handler)
     video_widget = new QG_VideoWidget(dock_video, "Video");
     video_widget->setFocusPolicy(Qt::NoFocus);
     connect(video_widget, SIGNAL(escape()), main_window, SLOT(slotFocus()));
+    QMdiArea *mdiArea = main_window->getMdiArea();
+    connect(mdiArea, SIGNAL(subWindowActivated(QMdiSubWindow*)),
+            video_widget, SLOT(subWindowChanged(QMdiSubWindow*)));
     connect(main_window, SIGNAL(windowsChanged(bool)), video_widget, SLOT(setEnabled(bool)));
     dock_video->setWidget(video_widget);
 
