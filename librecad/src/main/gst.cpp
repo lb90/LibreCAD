@@ -1,5 +1,5 @@
 #include "gst.h"
-#include <gst/gst.h>
+#include "gstcpupipeline.h"
 
 static
 const int MAX_CAMERAS = 10;

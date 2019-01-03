@@ -1,6 +1,7 @@
 #include <QObject>
 
 #include <vector>
+#include <list>
 #include <string>
 #include <functional>
 
@@ -20,6 +21,8 @@ public:
 
     bool get_live_video_sources(std::vector<std::string>& cameras);
 private:
+    std::list<GstCpuPipeline*> camera_pipelines;
+
     std::function<void(const std::string&)> util_log;
     std::function<void(const std::string&)> util_print;
 };
