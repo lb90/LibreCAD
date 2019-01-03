@@ -29,6 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <QApplication>
 
+class Gst;
+
 class QStringList;
 
 class LC_Application : public QApplication
@@ -40,11 +42,13 @@ public:
 
     QStringList const& fileList(void) const;
 
+    Gst* gst() { return m_gst; }
 protected:
     bool event(QEvent *event) Q_DECL_OVERRIDE;
 
 private:
     QStringList files;
+    Gst *m_gst;
 };
 
 #endif // LC_APPLICATION_H

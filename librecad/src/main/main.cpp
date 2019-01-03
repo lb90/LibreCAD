@@ -26,6 +26,7 @@
 **
 **********************************************************************/
 #include <clocale>
+#include <iostream>
 #include "main.h"
 
 #include <QDebug>
@@ -46,6 +47,7 @@
 #include "rs_debug.h"
 
 #include "console_dxf2pdf.h"
+#include "gst.h"
 
 
 /**
@@ -261,6 +263,14 @@ int main(int argc, char** argv)
 
     RS_SYSTEM->loadTranslation(lang, langCmd);
     RS_DEBUG->print("main: loading translation: OK");
+
+    RS_DEBUG->print("main: initializing GStreamer");
+    app.gst()->init();
+    std::vector<std::string> a;
+    app.gst()->get_live_video_sources(a);
+    for (const auto& name : a) {
+        std::cout << name << "\n";
+    }
 
     RS_DEBUG->print("main: creating main window..");
     QC_ApplicationWindow appWin;

@@ -28,10 +28,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <QFileOpenEvent>
 
 #include "lc_application.h"
+#include "gst.h"
+#include "util_log.h"
 
 LC_Application::LC_Application(int &argc, char **argv)
     : QApplication(argc, argv)
 {
+    m_gst = new Gst(show_log, do_print);
 }
 
 // This is only used until the event filter is in place in mainwindow
