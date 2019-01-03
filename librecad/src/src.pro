@@ -4,7 +4,7 @@ TEMPLATE = app
 
 QT_CONFIG -= no-pkg-config
 CONFIG += link_pkgconfig
-PKGCONFIG += gstreamer-1.0
+PKGCONFIG += gstreamer-1.0 gstreamer-video-1.0
 
 DISABLE_POSTSCRIPT = false
 
@@ -226,7 +226,8 @@ HEADERS += \
     main/lc_application.h \
     main/util_log.h \
     ui/qg_videowidget.h \
-    main/gst.h
+    main/gst.h \
+    main/gstcpupipeline.h
 
 SOURCES += \
     lib/actions/rs_actioninterface.cpp \
@@ -320,7 +321,9 @@ SOURCES += \
     main/lc_application.cpp \
     main/util_log.cpp \
     ui/qg_videowidget.cpp \
-    main/gst.cpp
+    main/gst.cpp \
+    main/gstcpupipeline.cpp \
+    main/format.cc
 
 # ################################################################################
 # Command
