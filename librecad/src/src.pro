@@ -2,6 +2,10 @@
 # (c) Ries van Twisk (librecad@rvt.dds.nl)
 TEMPLATE = app
 
+QT_CONFIG -= no-pkg-config
+CONFIG += link_pkgconfig
+PKGCONFIG += gstreamer-1.0
+
 DISABLE_POSTSCRIPT = false
 
 #uncomment to enable a Debugging menu entry for basic unit testing
@@ -221,7 +225,8 @@ HEADERS += \
     actions/lc_actiondrawlinepolygon3.h \
     main/lc_application.h \
     main/util_log.h \
-    ui/qg_videowidget.h
+    ui/qg_videowidget.h \
+    main/gst.h
 
 SOURCES += \
     lib/actions/rs_actioninterface.cpp \
@@ -314,7 +319,8 @@ SOURCES += \
     actions/lc_actiondrawlinepolygon3.cpp \
     main/lc_application.cpp \
     main/util_log.cpp \
-    ui/qg_videowidget.cpp
+    ui/qg_videowidget.cpp \
+    main/gst.cpp
 
 # ################################################################################
 # Command
