@@ -38,6 +38,7 @@ class QLabel;
 class QMenu;
 
 class QG_ScrollBar;
+class GstCpuPipeline;
 
 /**
  * This is the Qt implementation of a widget which can view a 
@@ -103,6 +104,7 @@ public:
     void destroyMenu(const QString& activator);
     void setMenu(const QString& activator, QMenu* menu);
 
+    GstCpuPipeline* get_pipeline() { return pipeline; }
 protected:
 	void mousePressEvent(QMouseEvent* e) override;
 	void mouseDoubleClickEvent(QMouseEvent* e) override;
@@ -158,6 +160,7 @@ protected:
 
     QMap<QString, QMenu*> menus;
 
+    GstCpuPipeline *pipeline{nullptr};
 private:
     bool antialiasing{false};
     bool scrollbars{false};

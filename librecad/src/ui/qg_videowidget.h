@@ -2,6 +2,7 @@
 #define QG_VIDEOWIDGET_H
 
 #include <QWidget>
+#include "gst.h"
 
 QT_BEGIN_NAMESPACE
 class QVBoxLayout;
@@ -14,6 +15,8 @@ class QToolButton;
 class QMdiSubWindow;
 QT_END_NAMESPACE
 
+class QG_GraphicView;
+
 class QG_VideoWidget
  : public QWidget
 {
@@ -24,18 +27,32 @@ public:
     QG_VideoWidget(const QG_VideoWidget&) = delete;
     void operator=(const QG_VideoWidget&) = delete;
 
+    void setGraphicView(QG_GraphicView* view);
+
 signals:
     void escape();
+
 private:
-    QStackedLayout *source_stack;
-    QComboBox      *camera_combo;
-    QLineEdit      *file_edit;
+    QWidget        *source_widget;
+      QStackedLayout *source_stack;
+        QComboBox      *camera_combo;
+        QToolButton    *refresh_button;
+        QLineEdit      *file_edit;
+        QToolButton    *open_button;
     QToolButton    *source_prev;
     QToolButton    *source_next;
     QToolButton    *stop_button;
     QToolButton    *pause_button;
     QToolButton    *play_button;
 
+    QG_GraphicView *view {nullptr};
+
+private:
+    void set_source_part_enabled(bool);
+
+    void on_stopped();
+    void on_paused();
+    void on_playing();
 /*slots:*/
     void source_page_prev();
     void source_page_next();
@@ -44,7 +61,10 @@ private:
     void pause();
     void play();
 
-    void subWindowChanged(QMdiSubWindow*);
+    void subWindowActivated(QMdiSubWindow*);
+    void PipelineStateChanged(int);
+private:
+    Gst *gst {nullptr};
 };
 
 #endif

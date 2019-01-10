@@ -68,6 +68,7 @@
 #include "qg_snaptoolbar.h"
 #include "qg_blockwidget.h"
 #include "qg_layerwidget.h"
+#include "qg_videowidget.h"
 #include "qg_librarywidget.h"
 #include "qg_commandwidget.h"
 #include "qg_pentoolbar.h"
@@ -290,6 +291,7 @@ QC_ApplicationWindow::QC_ApplicationWindow()
     layerWidget = widget_factory.layer_widget;
     blockWidget = widget_factory.block_widget;
     commandWidget = widget_factory.command_widget;
+    videoWidget = widget_factory.video_widget;
 
     file_menu = widget_factory.file_menu;
     windowsMenu = widget_factory.windows_menu;
@@ -787,6 +789,11 @@ void QC_ApplicationWindow::slotWindowActivated(QMdiSubWindow* w) {
             actionHandler->set_view(view);
             actionHandler->set_document(m->getDocument());
             emit printPreviewChanged(view->isPrintPreview());
+        }
+
+        if (view)
+        {
+            videoWidget->setGraphicView(view);
         }
 
         if(snapToolBar){

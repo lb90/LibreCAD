@@ -45,6 +45,7 @@ class QC_DialogFactory;
 class QG_LayerWidget;
 class QG_BlockWidget;
 class QG_CommandWidget;
+class QG_VideoWidget;
 class QG_CoordinateWidget;
 class QG_MouseWidget;
 class QG_SelectionWidget;
@@ -339,6 +340,8 @@ private:
     QG_LibraryWidget* libraryWidget;
     /** Command line */
     QG_CommandWidget* commandWidget;
+    /** Video Integration */
+    QG_VideoWidget* videoWidget;
 
     LC_PenWizard* pen_wiz;
 

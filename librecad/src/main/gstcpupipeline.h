@@ -2,6 +2,9 @@
 #define GSTCPUPIPELINE_H
 
 #include <QObject>
+#include <QMutex>
+#include <QAtomicPointer>
+#include <QImage>
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
@@ -13,27 +16,53 @@ class GstCpuPipeline
  : public QObject
 {
 Q_OBJECT
+Q_DISABLE_COPY(GstCpuPipeline)
 public:
     GstCpuPipeline(QObject *parent,
                    std::function<void(const std::string&)> log,
                    std::function<void(const std::string&)> print);
-    GstCpuPipeline(const GstCpuPipeline&) = delete;
-    void operator=(const GstCpuPipeline&) = delete;
 
-    enum class State {
+    enum class ObjectState {
         basic,
+        constructed,
+        deconstructed,
         in_error 
     };
 
-    bool setup();
+    enum class SourceType {
+        LiveCamera = 0,
+        File
+    };
+
+    enum class PipelineStateNotify {
+        stopped,
+        paused,
+        playing
+    };
+
+    bool setup(int index, const std::string& path = "");
     void deconstruct();
 
-    State get_state() const { return state; }
+    SourceType get_source_type() const { return source_type; }
+    ObjectState get_object_state() const { return object_state; }
+
+    void stop();
+    void pause();
+    void play();
 
 signals:
     void NewFrame();
-    void StateChanged();
+    void PipelineStateChanged(int);
+/*public:
+    enum class PipelineState {
+        null = 0,
+        stopped,
+        playing
+    };*/
 
+public:
+    QImage *frame;
+    QMutex frame_lock;
 private:
     GstPipeline *pipeline;
     GstElement  *source;
@@ -44,10 +73,12 @@ private:
 
     guint bus_cb_connection;
 
+private:
+    SourceType source_type;
+    ObjectState object_state;
+
     std::function<void(const std::string&)> util_log;
     std::function<void(const std::string&)> util_print;
-
-    State state;
 
 private:
     gboolean bus_cb(GstBus *bus, GstMessage *msg);
