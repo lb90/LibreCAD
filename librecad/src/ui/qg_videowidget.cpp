@@ -2,7 +2,7 @@
 #include "qg_graphicview.h"
 #include "lc_application.h"
 #include "gst.h"
-#include "gstcpupipeline.h"
+#include "videopipelinecpu.h"
 
 #include <QBoxLayout>
 #include <QStackedLayout>

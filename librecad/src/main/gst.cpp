@@ -1,11 +1,13 @@
 #include "gst.h"
-#include "gstcpupipeline.h"
+#include "videopipelinecpu.h"
 
 static
-const int MAX_CAMERAS = 10;
+const
+int MAX_CAMERAS = 10;
 
 static
-const unsigned int MAX_NAME_LENGTH = 30U;
+const
+unsigned int MAX_NAME_LENGTH = 30U;
 
 bool Gst::init() {
     bool is_ok = true;
@@ -29,45 +31,34 @@ bool Gst::init() {
     return is_ok;
 }
 
-bool Gst::create_camera_pipeline(int index,
-                                 GstCpuPipeline** pipeline) {
-    *pipeline = nullptr;
-
+std::shared_ptr<VideoPipeline> Gst::get_camera_pipeline(int index) {
     if (index < 0 || unsigned(index) < camera_pipelines.size()) {
         util_log("live camera index is out of range");
+        return nullptr;
     }
-    GstCpuPipeline *l_pipeline = camera_pipelines.at(unsigned(index));
-    if (l_pipeline == nullptr) {
-        l_pipeline = new GstCpuPipeline(nullptr, util_log, util_print);
+    /*TODO for C++14: use std::make_shared<>*/
+    std::shared_ptr<VideoPipeline> pipeline = camera_pipelines.at(unsigned(index)).lock();
+    if (!pipeline) {
+        pipeline.reset(new VideoPipelineCpu(nullptr, util_log, util_print));
 
-        if (!l_pipeline->setup(index, "")) {
-            delete l_pipeline;
-            return false;
-        }
+        if (!pipeline->construct_for_camera(index))
+            return nullptr;
 
-        camera_pipelines.at(unsigned(index)) = l_pipeline;
+        camera_pipelines.at(unsigned(index)) = pipeline;
     }
-    assert(l_pipeline->get_object_state() != GstCpuPipeline::ObjectState::basic);
-    *pipeline = l_pipeline;
-
-    return true;
+    assert(pipeline->get_object_state() != VideoPipeline::ObjectState::basic);
 }
 
-bool Gst::create_file_pipeline(const std::string& path,
-                               GstCpuPipeline** pipeline) {
-    *pipeline = nullptr;
+std::unique_ptr<VideoPipeline> Gst::get_file_pipeline(const std::string& path) {
+    /*TODO for C++14: use std::make_unique<>*/
+    std::unique_ptr<VideoPipeline> pipeline(new VideoPipelineCpu(nullptr, util_log, util_print));
+    if (!pipeline->construct_for_file(path))
+        return nullptr;
 
-    GstCpuPipeline *l_pipeline = new GstCpuPipeline(nullptr, util_log, util_print);
-    if (!l_pipeline->setup(-1, path)) {
-        delete l_pipeline;
-        return false;
-    }
-    *pipeline = l_pipeline;
-
-    return true;
+    return pipeline;
 }
 
-bool Gst::get_live_video_sources(std::vector<std::string>& cameras) {
+bool Gst::enumerate_camera_sources(std::vector<std::string>& cameras) {
     std::string base = "source_enum_element";
     GstElement *source = NULL;
 

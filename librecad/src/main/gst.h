@@ -3,11 +3,12 @@
 
 #include <QObject>
 
+#include <functional>
 #include <vector>
 #include <string>
-#include <functional>
+#include <memory>
 
-class GstCpuPipeline;
+class VideoPipeline;
 
 class Gst
  : public QObject
@@ -21,14 +22,15 @@ public:
     {}
     bool init();
 
-    bool create_camera_pipeline(int index,
-                                GstCpuPipeline** pipeline);
-    bool create_file_pipeline(const std::string& path,
-                              GstCpuPipeline** pipeline);
+public:
+    std::shared_ptr<VideoPipeline> get_camera_pipeline(int index);
+    std::unique_ptr<VideoPipeline> get_file_pipeline(const std::string& path);
 
-    bool get_live_video_sources(std::vector<std::string>& cameras);
+public:
+    bool enumerate_camera_sources(std::vector<std::string>& cameras);
+
 private:
-    std::vector<GstCpuPipeline*> camera_pipelines;
+    std::vector<std::weak_ptr<VideoPipeline>> camera_pipelines;
 
     std::function<void(const std::string&)> util_log;
     std::function<void(const std::string&)> util_print;

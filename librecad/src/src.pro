@@ -227,7 +227,9 @@ HEADERS += \
     main/util_log.h \
     ui/qg_videowidget.h \
     main/gst.h \
-    main/gstcpupipeline.h
+    main/videopipelinemoniker.h \
+    main/videopipeline.h \
+    main/videopipelinecpu.h
 
 SOURCES += \
     lib/actions/rs_actioninterface.cpp \
@@ -322,8 +324,10 @@ SOURCES += \
     main/util_log.cpp \
     ui/qg_videowidget.cpp \
     main/gst.cpp \
-    main/gstcpupipeline.cpp \
-    main/format.cc
+    main/format.cc \
+    main/videopipelinemoniker.cpp \
+    main/videopipeline.cpp \
+    main/videopipelinecpu.cpp
 
 # ################################################################################
 # Command

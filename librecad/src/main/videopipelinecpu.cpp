@@ -1,4 +1,4 @@
-#include "gstcpupipeline.h"
+#include "videopipelinecpu.h"
 
 #include <gst/app/gstappsink.h>
 #include <gst/video/video.h>
@@ -12,18 +12,29 @@
   video.
 */
 
-typedef GstCpuPipeline Me;
+typedef VideoPipelineCpu Me;
 
-GstCpuPipeline::GstCpuPipeline(QObject *parent,
-                               std::function<void(const std::string&)> log,
-                               std::function<void(const std::string&)> print)
- : QObject(parent)
+VideoPipelineCpu::VideoPipelineCpu(QObject *parent,
+                                   std::function<void(const std::string&)> log,
+                                   std::function<void(const std::string&)> print)
+ : VideoPipeline(parent)
  , util_log(log)
  , util_print(print)
 {}
 
+VideoPipelineCpu::~VideoPipelineCpu() {
+    if (pipeline) {
+        gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_NULL);
+        gst_object_unref(GST_OBJECT(pipeline));
+        g_source_remove(bus_cb_connection);
+
+        pipeline = nullptr;
+        bus_cb_connection = 0;
+    }
+}
+
 GstFlowReturn
-new_sample_cb_forward(GstAppSink*,
+new_sample_cb_forward(GstElement*,
                       gpointer data)
 {
     Me *inst = static_cast<Me*>(data);
@@ -84,7 +95,51 @@ set_appsink(GstElement *appsink) {
     /* Drop old buffers when the buffer queue is filled. */
     g_object_set(appsink, "drop", TRUE, NULL);
 }
-bool GstCpuPipeline::setup(int index, const std::string& path) {
+
+bool VideoPipelineCpu::construct_for_camera(int index) {
+    if (object_state != ObjectState::basic || pipeline)
+        return false;
+
+#ifdef Q_OS_WIN
+    std::string source_element_name = "ksvideosrc";
+#else
+    std::string source_element_name = "v4l2src";
+#endif
+
+    using namespace std::placeholders;
+    if (!construct_common_priv(source_element_name,
+                               std::bind(&set_camerasource, _1, index))) {
+        object_state = ObjectState::ended_error;
+        return false;
+    }
+    source_type = SourceType::camera;
+    use = Use::shared;
+    object_state = ObjectState::constructed;
+    return true;
+}
+
+bool VideoPipelineCpu::construct_for_file(const std::string& path) {
+    if (object_state != ObjectState::basic || pipeline)
+        return false;
+
+    std::string source_element_name = "filesrc";
+
+    using namespace std::placeholders;
+    if (!construct_common_priv(source_element_name.c_str(),
+                               std::bind(&set_filesource, _1, path))) {
+        object_state = ObjectState::ended_error;
+        return false;
+    }
+    source_type = SourceType::file;
+    use = Use::unique;
+    object_state = ObjectState::constructed;
+    return true;
+}
+
+bool VideoPipelineCpu::construct_common_priv(
+        const std::string& source_element_name,
+        std::function<void(GstElement*)> set_source)
+{
     if (object_state != ObjectState::basic || pipeline)
         return false;
 
@@ -92,7 +147,6 @@ bool GstCpuPipeline::setup(int index, const std::string& path) {
         util_log("gstreamer is not initialized, cannot build pipeline.");
         return false;
     }
-    object_state = ObjectState::in_error;
 
     pipeline = GST_PIPELINE(gst_pipeline_new("cpu_pipeline"));
     if (!pipeline) {
@@ -107,23 +161,10 @@ bool GstCpuPipeline::setup(int index, const std::string& path) {
                           gpointer(this));
     gst_object_unref(bus);
 
-    if (index >= 0) {
-#ifdef Q_OS_WIN
-        source = gst_element_factory_make("ksvideosrc", "source");
-#else
-        source = gst_element_factory_make("v4l2src", "source");
-#endif
-        if (!source) {
-            util_log("could not create source element.");
-            return false;
-        }
-    }
-    else {
-        source = gst_element_factory_make("filesrc", "source");
-        if (!source) {
-            util_log("could not create source element.");
-            return false;
-        }
+    source = gst_element_factory_make(source_element_name.c_str(), "source");
+    if (!source) {
+        util_log("could not create source element.");
+        return false;
     }
 
     decoder = gst_element_factory_make("decodebin", "decoder");
@@ -144,10 +185,7 @@ bool GstCpuPipeline::setup(int index, const std::string& path) {
         return false;
     }
 
-    if (index >= 0)
-        set_camerasource(source, index);
-    else
-        set_filesource(source, path);
+    set_source(source);
     set_capsfilter(sink);
     set_appsink(sink);
     g_signal_connect(sink, "new-sample",
@@ -169,16 +207,10 @@ bool GstCpuPipeline::setup(int index, const std::string& path) {
     g_signal_connect(decoder, "pad-added", G_CALLBACK(pad_added_cb_forward),
                      gpointer(this));
 
-    if (index >= 0)
-        source_type = SourceType::LiveCamera;
-    else
-        source_type = SourceType::File;
-
-    object_state = ObjectState::constructed;
     return true;
 }
 
-GstFlowReturn GstCpuPipeline::new_sample_cb() {
+GstFlowReturn VideoPipelineCpu::new_sample_cb() {
     GstSample *sample = NULL;
     bool ok = false;
 
@@ -233,7 +265,7 @@ GstFlowReturn GstCpuPipeline::new_sample_cb() {
               : GST_FLOW_ERROR;
 }
 
-gboolean GstCpuPipeline::bus_cb(GstBus *, GstMessage *msg) {
+gboolean VideoPipelineCpu::bus_cb(GstBus *, GstMessage *msg) {
     switch (GST_MESSAGE_TYPE(msg)) {
         case GST_MESSAGE_ERROR: {
             gchar *debug;
@@ -256,10 +288,10 @@ gboolean GstCpuPipeline::bus_cb(GstBus *, GstMessage *msg) {
                 gst_element_get_state(GST_ELEMENT(pipeline), &state, NULL, 0);
                 switch (state) {
                     case GST_STATE_PLAYING:
-                        { emit PipelineStateChanged((int)PipelineStateNotify::playing); }
+                        { emit StateChanged(StateNotify::playing); }
                     break;
                     case GST_STATE_PAUSED:
-                        { emit PipelineStateChanged((int)PipelineStateNotify::paused); }
+                        { emit StateChanged(StateNotify::paused); }
                     break;
                     /*default:
                         { emit PipelineStateChanged(PipelineStateNotify::transitioning); }*/
@@ -271,7 +303,7 @@ gboolean GstCpuPipeline::bus_cb(GstBus *, GstMessage *msg) {
     return TRUE;
 }
 
-void GstCpuPipeline::pad_added_cb(GstElement*, GstPad *pad) {
+void VideoPipelineCpu::pad_added_cb(GstElement*, GstPad *pad) {
     /* if videoconvert pad is already linked do nothing. */
     GstPad *sink_pad = gst_element_get_static_pad (converter, "sink");
 
@@ -293,8 +325,8 @@ void GstCpuPipeline::pad_added_cb(GstElement*, GstPad *pad) {
 
                 util_log("could not link gstreamer pipeline elements"
                          "(decoder <-> converter).");
-                this->deconstruct();
-                object_state = ObjectState::in_error;
+                object_state = ObjectState::ended_error;
+#error "implement me!" /* signal that pipeline ended! */
             }
         }
         gst_caps_unref(new_pad_caps);
@@ -302,31 +334,42 @@ void GstCpuPipeline::pad_added_cb(GstElement*, GstPad *pad) {
     gst_object_unref(sink_pad);
 }
 
-void GstCpuPipeline::stop() {
+void VideoPipelineCpu::pause() {
     if (object_state != ObjectState::constructed)
         return;
-    gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_NULL);
+
+    switch (use) {
+    case Use::unique: {
+        gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_PAUSED);
+    }
+    break;
+    case Use::shared: {
+        playing_count--;
+        if (!playing_count) {
+            gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_PAUSED);
+        }
+    }
+    break;
+    }
 }
 
-void GstCpuPipeline::pause() {
+void VideoPipelineCpu::play() {
     if (object_state != ObjectState::constructed)
         return;
-    gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_PAUSED);
+
+    switch (use) {
+    case Use::unique: {
+        gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_PLAYING);
+    }
+    break;
+    case Use::shared: {
+        if (!playing_count) {
+            gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_PLAYING);
+        }
+        playing_count++;
+    }
+    break;
+    }
 }
 
-void GstCpuPipeline::play() {
-    if (object_state != ObjectState::constructed)
-        return;
-    gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_PLAYING);
-}
 
-/**
-  Please, do not re-setup a deconstructed pipeline. Just create a new object.
-  Calling setup() on a deconstructed pipeline yelds an error.
-*/
-void GstCpuPipeline::deconstruct() {
-    gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_NULL);
-    gst_object_unref(GST_OBJECT(pipeline));
-    g_source_remove(bus_cb_connection);
-    object_state = ObjectState::deconstructed;
-}
