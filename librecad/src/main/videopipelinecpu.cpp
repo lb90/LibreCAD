@@ -65,6 +65,16 @@ pad_added_cb_forward(GstElement *element,
     inst->pad_added_cb(element, pad);
 }
 
+void
+no_more_pads_cb_forward(GstElement *element,
+                        gpointer data)
+{
+    Me *inst = static_cast<Me*>(data);
+    if (!inst) /*TODO throw from C callback */
+        throw std::runtime_error("NULL instance pointer.");
+    inst->no_more_pads_cb(element);
+}
+
 static void
 set_camerasource(GstElement *source, int index) {
 #ifdef Q_OS_WIN
@@ -112,6 +122,7 @@ bool VideoPipelineCpu::construct_for_camera(int index) {
         object_state = ObjectState::ended_error;
         return false;
     }
+    camera_index = index;
     source_type = SourceType::camera;
     use = Use::shared;
     object_state = ObjectState::constructed;
@@ -130,6 +141,7 @@ bool VideoPipelineCpu::construct_for_file(const std::string& path) {
         object_state = ObjectState::ended_error;
         return false;
     }
+    file_path = path;
     source_type = SourceType::file;
     use = Use::unique;
     object_state = ObjectState::constructed;
@@ -206,6 +218,8 @@ bool VideoPipelineCpu::construct_common_priv(
     }
     g_signal_connect(decoder, "pad-added", G_CALLBACK(pad_added_cb_forward),
                      gpointer(this));
+    g_signal_connect(decoder, "no-more-pads", G_CALLBACK(no_more_pads_cb_forward),
+                     gpointer(this));
 
     return true;
 }
@@ -268,24 +282,39 @@ GstFlowReturn VideoPipelineCpu::new_sample_cb() {
 gboolean VideoPipelineCpu::bus_cb(GstBus *, GstMessage *msg) {
     switch (GST_MESSAGE_TYPE(msg)) {
         case GST_MESSAGE_ERROR: {
-            gchar *debug;
-            GError *error;
+            gchar *debug = NULL;
+            GError *error = NULL;
 
             gst_message_parse_error(msg, &error, &debug);
-            g_free(debug);
+            if (error && error->message) {
+                util_log(fmt::format("Errore nella pipeline video\n{}",
+                                       error->message).c_str());
+            }
+            else if (debug) {
+                util_log(fmt::format("Errore nella pipeline video\n{}",
+                                       debug).c_str());
+            }
+            else {
+                util_log("Errore nella pipeline video");
+            }
 
-            util_print(fmt::format("error: {}", error->message).c_str());
+            object_state = ObjectState::ended_error;
+            emit Ended();
 
+            if (debug)
+                g_free(debug);
             g_clear_error(&error);
         }
         break;
         case GST_MESSAGE_EOS: {
+            object_state = ObjectState::ended_ok;
+            emit Ended();
         }
         break;
         case GST_MESSAGE_STATE_CHANGED: {
-            if (msg->src == (GstObject*)pipeline) {
+            if (GST_MESSAGE_SRC(msg) == GST_OBJECT(pipeline)) {
                 GstState state = GST_STATE_NULL;
-                gst_element_get_state(GST_ELEMENT(pipeline), &state, NULL, 0);
+                gst_message_parse_state_changed(msg, NULL, &state, NULL);
                 switch (state) {
                     case GST_STATE_PLAYING:
                         { emit StateChanged(StateNotify::playing); }
@@ -293,8 +322,8 @@ gboolean VideoPipelineCpu::bus_cb(GstBus *, GstMessage *msg) {
                     case GST_STATE_PAUSED:
                         { emit StateChanged(StateNotify::paused); }
                     break;
-                    /*default:
-                        { emit PipelineStateChanged(PipelineStateNotify::transitioning); }*/
+                    default:
+                    break;
                 }
             }
         }
@@ -303,7 +332,7 @@ gboolean VideoPipelineCpu::bus_cb(GstBus *, GstMessage *msg) {
     return TRUE;
 }
 
-void VideoPipelineCpu::pad_added_cb(GstElement*, GstPad *pad) {
+void VideoPipelineCpu::pad_added_cb(GstElement* element, GstPad *pad) {
     /* if videoconvert pad is already linked do nothing. */
     GstPad *sink_pad = gst_element_get_static_pad (converter, "sink");
 
@@ -320,16 +349,36 @@ void VideoPipelineCpu::pad_added_cb(GstElement*, GstPad *pad) {
         new_pad_type = gst_structure_get_name(new_pad_struct);
 
         if (g_str_has_prefix(new_pad_type, "video/x-raw")) {
-
             if (!gst_element_link(decoder, converter)) {
-
-                util_log("could not link gstreamer pipeline elements"
-                         "(decoder <-> converter).");
-                object_state = ObjectState::ended_error;
-#error "implement me!" /* signal that pipeline ended! */
+                GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
+                /*TODO create a GError*/
+                GstMessage *msg = gst_message_new_error(GST_OBJECT(element), NULL,
+                                      "could not link gstreamer pipeline elements"
+                                      "(decoder <-> converter).");
+                gst_bus_post(bus, msg);
+                /* do not gst_message_unref!
+                 * ownership is transferred to bus */
+                gst_object_unref(bus);
             }
         }
         gst_caps_unref(new_pad_caps);
+    }
+    gst_object_unref(sink_pad);
+}
+
+void VideoPipelineCpu::no_more_pads_cb(GstElement* element) {
+    /* check if videoconvert pad was linked. */
+    GstPad *sink_pad = gst_element_get_static_pad (converter, "sink");
+    if (!gst_pad_is_linked(sink_pad)) {
+        GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
+        /*TODO create a GError*/
+        GstMessage *msg = gst_message_new_error(GST_OBJECT(element), NULL,
+                                          "Formato video non riconosciuto");
+        gst_bus_post(bus, msg);
+
+        /* do not gst_message_unref!
+         * ownership is transferred to bus */
+        gst_object_unref(bus);
     }
     gst_object_unref(sink_pad);
 }

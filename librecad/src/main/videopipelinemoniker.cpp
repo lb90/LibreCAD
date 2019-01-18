@@ -1,36 +1,94 @@
 #include "videopipelinemoniker.h"
 #include "videopipeline.h"
+#include "gst.h"
+#include "lc_application.h"
 
-VideoPipelineMoniker::~VideoPipelineMoniker() = default;
-VideoPipelineMonikerUnique::~VideoPipelineMonikerUnique() = default;
-VideoPipelineMonikerShared::~VideoPipelineMonikerShared() = default;
+VideoPipelineMoniker::VideoPipelineMoniker(QWidget *view) {
+    gst = ((LC_Application*)qApp)->gst();
+    if (!gst)
+        throw std::runtime_error("NULL gst pointer in VideoPipelineMoniker");
+    if (!view)
+        throw std::runtime_error("NULL view passed to VideoPipelineMoniker");
+    graphicview = view;
+}
 
-void VideoPipelineMonikerShared::play() {
-    if (paused) {
-        pipeline->play();
-        paused = false;
+VideoPipelineMoniker::~VideoPipelineMoniker() {
+    reset();
+}
+
+void VideoPipelineMoniker::play() {
+    if (!pipeline)
+        return;
+    if (use == Use::shared) {
+        if (paused) {
+            pipeline->play();
+            paused = false;
+        }
     }
+    else pipeline->play();
 }
 
-void VideoPipelineMonikerShared::pause() {
-    if (!paused) {
-        pipeline->pause();
-        paused = true;
+void VideoPipelineMoniker::pause() {
+    if (!pipeline)
+        return;
+    if (use == Use::shared) {
+        if (!paused) {
+            pipeline->pause();
+            paused = true;
+        }
     }
+    else pipeline->pause();
 }
 
-void VideoPipelineMonikerShared::stop() {
-    pipeline.reset();
+void VideoPipelineMoniker::reset() {
+    if (!pipeline)
+        return;
+    if (use == Use::shared)
+        pause(); /* be sure to pause */
+
+    /* disconnect all connected signals */
+    disconnect(pipeline.get(), SIGNAL(PipelineEnded), this, SLOT(OnPipelineEnded));
+    disconnect(pipeline.get(), SIGNAL(StateChanged), this, SLOT(OnStateChanged));
+
+    pipeline.reset(); /* drop pipeline */
 }
 
-void VideoPipelineMonikerUnique::play() {
-    pipeline->play();
+bool VideoPipelineMoniker::wrap_file_pipeline(const std::string& path) {
+    reset();
+    pipeline = gst->get_file_pipeline(path);
+
+    /* connect signals */
+    connect(pipeline.get(), SIGNAL(StateChanged), this, SLOT(OnStateChanged));
+    connect(pipeline.get(), SIGNAL(PipelineEnded), this, SLOT(OnPipelineEnded));
+
+    use = Use::unique;
+    return true;
 }
 
-void VideoPipelineMonikerUnique::pause() {
-    pipeline->pause();
+bool VideoPipelineMoniker::wrap_camera_pipeline(int index) {
+    reset();
+    pipeline = gst->get_camera_pipeline(index);
+
+    /* connect signals */
+    connect(pipeline.get(), SIGNAL(StateChanged), this, SLOT(OnStateChanged));
+    connect(pipeline.get(), SIGNAL(PipelineEnded), this, SLOT(OnPipelineEnded));
+
+    use = Use::shared;
+    return true;
 }
 
-void VideoPipelineMonikerUnique::stop() {
-    pipeline.reset();
+void VideoPipelineMoniker::OnPipelineEnded() {
+    reset();
+    emit StateChanged(2);
+}
+
+void VideoPipelineMoniker::OnStateChanged(VideoPipeline::StateNotify new_state) {
+    switch (new_state) {
+    case VideoPipeline::StateNotify::playing:
+        emit StateChanged(0);
+        break;
+    case VideoPipeline::StateNotify::paused:
+        emit StateChanged(1);
+        break;
+    }
 }

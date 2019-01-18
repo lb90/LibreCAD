@@ -2,7 +2,8 @@
 #include "qg_graphicview.h"
 #include "lc_application.h"
 #include "gst.h"
-#include "videopipelinecpu.h"
+#include "videopipelinemoniker.h"
+#include "videopipeline.h"
 
 #include <QBoxLayout>
 #include <QStackedLayout>
@@ -21,14 +22,6 @@ make_widget(QLayout *layout) {
     widget->setLayout(layout);
     return widget;
 }
-/*
-static QWidget*
-make_widget_expanding(QLayout *layout, QSizePolicy::Policy expanding) {
-    QWidget *widget = make_widget(layout);
-    widget->setSizePolicy(expanding, QSizePolicy::Fixed);
-    return widget;
-}
-*/
 
 QG_VideoWidget::QG_VideoWidget(QWidget *parent,
                                const char *name,
@@ -104,7 +97,18 @@ QG_VideoWidget::QG_VideoWidget(QWidget *parent,
     connect(stop_button, &QAbstractButton::clicked, this, &QG_VideoWidget::stop);
     connect(pause_button, &QAbstractButton::clicked, this, &QG_VideoWidget::pause);
     connect(play_button, &QAbstractButton::clicked, this, &QG_VideoWidget::play);
-    /* refresh camera list */
+
+    /*TODO refresh camera list */
+    std::vector<std::string> camera_names;
+    if (gst->enumerate_camera_sources(camera_names)) {
+        QStringList cameras;
+
+        for (const std::string& camera_name : camera_names)
+            cameras.append(QString(camera_name.c_str()));
+
+        camera_combo->addItems(cameras);
+    }
+    /*TODO always select in combobox?*/
 }
 
 void QG_VideoWidget::source_page_prev() {
@@ -151,35 +155,41 @@ void QG_VideoWidget::browse_file() {
 void QG_VideoWidget::stop() {
     if (!view)
         return;
-    if (!view->get_pipeline())
+    if (!view->get_video_moniker().active())
         return;
 
-    view->get_pipeline()->stop();
+    view->get_video_moniker().reset();
 }
 void QG_VideoWidget::pause() {
     if (!view)
         return;
-    if (!view->get_pipeline())
+    if (!view->get_video_moniker().active())
         return;
 
-    view->get_pipeline()->pause();
+    view->get_video_moniker().pause();
 }
 void QG_VideoWidget::play() {
     if (!view)
         return;
 
-    if (!view->get_pipeline()) {
+    if (!view->get_video_moniker().active()) {
         switch (source_stack->currentIndex()) {
             case 0: { /*CAMERA*/
                 int index = camera_combo->currentIndex();
                 if (index < 0) {
                     QMessageBox msgBox;
-                    msgBox.setText("Selezionare una camera");
-                    msgBox.exec();
-                    camera_combo->setFocus();
+                    if (camera_combo->count()) { /* ci sono camera nel sistema */
+                        msgBox.setText("Selezionare una camera");
+                        msgBox.exec();
+                        camera_combo->setFocus();
+                    }
+                    else {
+                        msgBox.setText("Non sono presenti sorgenti camera nel sistema");
+                        msgBox.exec();
+                    }
                     return;
                 }
-                gst->create_camera_pipeline(index, &pipeline);
+                view->get_video_moniker().wrap_camera_pipeline(index);
             } break;
             case 1: { /*FILE*/
                 if (file_edit->text().isEmpty()) {
@@ -188,7 +198,7 @@ void QG_VideoWidget::play() {
                     open_button->setFocus();
                     msgBox.exec();
                 }
-                gst->create_file_pipeline(file_edit->text().toStdString(), &pipeline);
+                view->get_video_moniker().wrap_file_pipeline(file_edit->text().toStdString());
             } break;
             default: {
                 QMessageBox msgBox;
@@ -196,14 +206,13 @@ void QG_VideoWidget::play() {
                 msgBox.exec();
             }
         }
-        if (!view->get_pipeline())
+        if (!view->get_video_moniker().active())
             return;
 
-        connect(view->get_pipeline(), SIGNAL(PipelineStateChanged), this, SLOT(PipelineStateChanged));
-        connect(view->get_pipeline(), SIGNAL(NewFrame), view, SLOT(update));
+        connect(&view->get_video_moniker(), SIGNAL(StateChanged), this, SLOT(PipelineStateChanged));
     }
 
-    view->get_pipeline()->play();
+    view->get_video_moniker().play();
 }
 
 void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
@@ -214,8 +223,8 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
 
     /* if there was a view before detach from its pipeline state changed */
     if (view) {
-        if (view->get_pipeline()) {
-            disconnect(view->get_pipeline(), SIGNAL(PipelineStateChanged),
+        if (view->get_video_moniker().active()) {
+            disconnect(&view->get_video_moniker(), SIGNAL(StateChanged),
                        this, SLOT(PipelineStateChanged));
         }
     }
@@ -227,35 +236,36 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
         return;
     }
 
-    if (view->get_pipeline()) {
-        connect(view->get_pipeline(), SIGNAL(PipelineStateChanged),
+    if (view->get_video_moniker().active()) {
+        connect(&view->get_video_moniker(), SIGNAL(StateChanged),
                 this, SLOT(PipelineStateChenged));
 
-        view->get_pipeline()->generate_pipeline_state_changed();
+        VideoPipeline *pipeline = view->get_video_moniker().get_pipeline();
+        pipeline->generate_state_changed();
 
-        switch (view->get_pipeline()->get_source_type()) {
-            case GstCpuPipeline::SourceType::LiveCamera:
-                source_stack->setCurrentIndex(0);
-                break;
-            case GstCpuPipeline::SourceType::File:
-                source_stack->setCurrentIndex(1);
-                break;
+        switch (pipeline->get_source_type()) {
+        case VideoPipeline::SourceType::camera: {
+            source_stack->setCurrentIndex(0);
+            camera_combo->setCurrentIndex(pipeline->camera_index);
+            file_edit->setText(QString());
+        } break;
+        case VideoPipeline::SourceType::file: {
+            source_stack->setCurrentIndex(1);
+            file_edit->setText(QString(pipeline->file_path.c_str()));
+        } break;
         }
     }
 }
 
 void QG_VideoWidget::PipelineStateChanged(int arg) {
-    GstCpuPipeline::PipelineStateNotify state
-        = static_cast<GstCpuPipeline::PipelineStateNotify>(arg);
-
-    switch (state) {
-        case GstCpuPipeline::PipelineStateNotify::stopped:
+    switch (arg) {
+        case 2:
             on_stopped();
         break;
-        case GstCpuPipeline::PipelineStateNotify::paused:
+        case 1:
             on_paused();
         break;
-        case GstCpuPipeline::PipelineStateNotify::playing:
+        case 0:
             on_playing();
         break;
     }

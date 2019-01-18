@@ -2,7 +2,6 @@
 #define QG_VIDEOWIDGET_H
 
 #include <QWidget>
-#include "gst.h"
 
 QT_BEGIN_NAMESPACE
 class QVBoxLayout;
@@ -16,6 +15,7 @@ class QMdiSubWindow;
 QT_END_NAMESPACE
 
 class QG_GraphicView;
+class Gst;
 
 class QG_VideoWidget
  : public QWidget
@@ -34,11 +34,11 @@ signals:
 
 private:
     QWidget        *source_widget;
-      QStackedLayout *source_stack;
-        QComboBox      *camera_combo;
-        QToolButton    *refresh_button;
-        QLineEdit      *file_edit;
-        QToolButton    *open_button;
+    QStackedLayout *source_stack;
+    QComboBox      *camera_combo;
+    QToolButton    *refresh_button;
+    QLineEdit      *file_edit;
+    QToolButton    *open_button;
     QToolButton    *source_prev;
     QToolButton    *source_next;
     QToolButton    *stop_button;
@@ -53,7 +53,7 @@ private:
     void on_stopped();
     void on_paused();
     void on_playing();
-/*slots:*/
+
     void source_page_prev();
     void source_page_next();
     void browse_file();
@@ -61,8 +61,11 @@ private:
     void pause();
     void play();
 
+public slots:
     void subWindowActivated(QMdiSubWindow*);
+private slots:
     void PipelineStateChanged(int);
+
 private:
     Gst *gst {nullptr};
 };

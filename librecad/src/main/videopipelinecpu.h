@@ -62,17 +62,24 @@ private:
 
     gboolean bus_cb(GstBus *bus, GstMessage *msg);
     void pad_added_cb(GstElement *element, GstPad *pad);
+    void no_more_pads_cb(GstElement *element);
     GstFlowReturn new_sample_cb();
 
 /*friends for C callbacks*/
-    friend gboolean bus_cb_forward(GstBus *bus,
-                                   GstMessage *msg,
-                                   gpointer data);
-    friend void pad_added_cb_forward(GstElement *element,
-                                     GstPad *pad,
-                                     gpointer data);
-    friend GstFlowReturn new_sample_cb_forward(GstElement*,
-                                               gpointer data);
+    friend
+    gboolean bus_cb_forward(GstBus *bus,
+                            GstMessage *msg,
+                            gpointer data);
+    friend
+    void pad_added_cb_forward(GstElement *element,
+                              GstPad *pad,
+                              gpointer data);
+    friend
+    void no_more_pads_cb_forward(GstElement *element,
+                                 gpointer data);
+    friend
+    GstFlowReturn new_sample_cb_forward(GstElement*,
+                                        gpointer data);
 };
 
 #endif

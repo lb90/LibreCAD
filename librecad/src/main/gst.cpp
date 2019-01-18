@@ -49,9 +49,9 @@ std::shared_ptr<VideoPipeline> Gst::get_camera_pipeline(int index) {
     assert(pipeline->get_object_state() != VideoPipeline::ObjectState::basic);
 }
 
-std::unique_ptr<VideoPipeline> Gst::get_file_pipeline(const std::string& path) {
-    /*TODO for C++14: use std::make_unique<>*/
-    std::unique_ptr<VideoPipeline> pipeline(new VideoPipelineCpu(nullptr, util_log, util_print));
+std::shared_ptr<VideoPipeline> Gst::get_file_pipeline(const std::string& path) {
+    /*TODO for C++14: use std::make_shared<>*/
+    std::shared_ptr<VideoPipeline> pipeline(new VideoPipelineCpu(nullptr, util_log, util_print));
     if (!pipeline->construct_for_file(path))
         return nullptr;
 

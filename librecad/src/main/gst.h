@@ -24,7 +24,7 @@ public:
 
 public:
     std::shared_ptr<VideoPipeline> get_camera_pipeline(int index);
-    std::unique_ptr<VideoPipeline> get_file_pipeline(const std::string& path);
+    std::shared_ptr<VideoPipeline> get_file_pipeline(const std::string& path);
 
 public:
     bool enumerate_camera_sources(std::vector<std::string>& cameras);

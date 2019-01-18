@@ -39,6 +39,9 @@ public:
     SourceType get_source_type() const { return source_type; }
     ObjectState get_object_state() const { return object_state; }
 
+    void generate_state_changed();
+    int camera_index {-1};
+    std::string file_path {};
 signals:
     void NewFrame();
     void StateChanged(StateNotify);

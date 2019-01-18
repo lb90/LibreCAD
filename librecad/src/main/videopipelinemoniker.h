@@ -1,58 +1,60 @@
 #ifndef VIDEOPIPELINEMONIKER_H
 #define VIDEOPIPELINEMONIKER_H
 
+#include "videopipeline.h"
+
 #include <QObject>
 #include <QImage>
 
 #include <memory>
 
-class VideoPipeline;
+class QWidget;
+class Gst;
 
-class VideoPipelineMoniker
+class VideoPipelineMoniker final
  : public QObject
 {
 Q_OBJECT
 Q_DISABLE_COPY(VideoPipelineMoniker)
 public:
-    virtual ~VideoPipelineMoniker();
+    VideoPipelineMoniker(QWidget *view);
+    ~VideoPipelineMoniker();
 
-    virtual void play() = 0;
-    virtual void pause() = 0;
-    virtual void stop() = 0;
+    enum class Use {
+        unique, shared
+    };
+
+    void play();
+    void pause();
+
+    const QImage* get_image() const;
+
+    bool wrap_file_pipeline(const std::string& path);
+    bool wrap_camera_pipeline(int index);
+
+    void reset();
+
+    bool active() const { return bool(pipeline); }
+
+    VideoPipeline* get_pipeline() { return pipeline.get(); }
+signals:
+    void StateChanged(int); /* 0: play
+                               1: pause
+                               2: ended */
+
+private slots:
+    void OnStateChanged(VideoPipeline::StateNotify);
+    void OnPipelineEnded();
 
 private:
-};
+    std::shared_ptr<VideoPipeline> pipeline {nullptr};
 
-class VideoPipelineMonikerShared final
- : public VideoPipelineMoniker
-{
-Q_DISABLE_COPY(VideoPipelineMonikerShared)
-public:
-    ~VideoPipelineMonikerShared() override;
-
-    void play() override;
-    void pause() override;
-    void stop() override;
-
-private:
+    Use use {Use::unique};
     bool paused {false};
-    QImage paused_frame;
-    std::shared_ptr<VideoPipeline> pipeline;
-};
+    QImage *paused_frame {nullptr};
 
-class VideoPipelineMonikerUnique final
- : public VideoPipelineMoniker
-{
-Q_DISABLE_COPY(VideoPipelineMonikerUnique)
-public:
-    ~VideoPipelineMonikerUnique() override;
-
-    void play() override;
-    void pause() override;
-    void stop() override;
-
-private:
-    std::unique_ptr<VideoPipeline> pipeline;
+    Gst *gst;
+    QWidget *graphicview;
 };
 
 #endif // VIDEOPIPELINEMONIKER_H

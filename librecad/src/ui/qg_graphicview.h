@@ -32,13 +32,13 @@
 #include "rs_graphicview.h"
 #include "rs_layerlistlistener.h"
 #include "rs_blocklistlistener.h"
+#include "videopipelinemoniker.h"
 
 class QGridLayout;
 class QLabel;
 class QMenu;
 
 class QG_ScrollBar;
-class GstCpuPipeline;
 
 /**
  * This is the Qt implementation of a widget which can view a 
@@ -104,7 +104,7 @@ public:
     void destroyMenu(const QString& activator);
     void setMenu(const QString& activator, QMenu* menu);
 
-    GstCpuPipeline* get_pipeline() { return pipeline; }
+    VideoPipelineMoniker& get_video_moniker() { return videomoniker; }
 protected:
 	void mousePressEvent(QMouseEvent* e) override;
 	void mouseDoubleClickEvent(QMouseEvent* e) override;
@@ -160,7 +160,7 @@ protected:
 
     QMap<QString, QMenu*> menus;
 
-    GstCpuPipeline *pipeline{nullptr};
+    VideoPipelineMoniker videomoniker {this};
 private:
     bool antialiasing{false};
     bool scrollbars{false};
