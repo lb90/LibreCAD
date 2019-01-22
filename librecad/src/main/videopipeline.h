@@ -6,6 +6,7 @@
 class VideoPipeline
  : public QObject
 {
+Q_OBJECT
 Q_DISABLE_COPY(VideoPipeline)
 public:
     VideoPipeline(QObject *parent);
@@ -39,7 +40,7 @@ public:
     SourceType get_source_type() const { return source_type; }
     ObjectState get_object_state() const { return object_state; }
 
-    void generate_state_changed();
+    void generate_state_changed() {}
     int camera_index {-1};
     std::string file_path {};
 signals:
@@ -48,8 +49,8 @@ signals:
     void Ended();
 
 protected:
-    SourceType source_type;
-    ObjectState object_state;
+    SourceType source_type { SourceType::file };
+    ObjectState object_state { ObjectState::basic };
 };
 
 #endif // VIDEOPIPELINE_H

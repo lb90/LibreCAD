@@ -209,7 +209,8 @@ void QG_VideoWidget::play() {
         if (!view->get_video_moniker().active())
             return;
 
-        connect(&view->get_video_moniker(), SIGNAL(StateChanged), this, SLOT(PipelineStateChanged));
+        connect(&view->get_video_moniker(), &VideoPipelineMoniker::StateChanged,
+                this, &QG_VideoWidget::PipelineStateChanged);
     }
 
     view->get_video_moniker().play();
@@ -224,21 +225,22 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
     /* if there was a view before detach from its pipeline state changed */
     if (view) {
         if (view->get_video_moniker().active()) {
-            disconnect(&view->get_video_moniker(), SIGNAL(StateChanged),
-                       this, SLOT(PipelineStateChanged));
+            disconnect(&view->get_video_moniker(), &VideoPipelineMoniker::StateChanged,
+                       this, &QG_VideoWidget::PipelineStateChanged);
         }
     }
 
     view = graphicView;
 
     if (!view) {
+        file_edit->setText(QString());
         setEnabled(false);
         return;
     }
 
     if (view->get_video_moniker().active()) {
-        connect(&view->get_video_moniker(), SIGNAL(StateChanged),
-                this, SLOT(PipelineStateChenged));
+        connect(&view->get_video_moniker(), &VideoPipelineMoniker::StateChanged,
+                this, &QG_VideoWidget::PipelineStateChanged);
 
         VideoPipeline *pipeline = view->get_video_moniker().get_pipeline();
         pipeline->generate_state_changed();
@@ -254,6 +256,9 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
             file_edit->setText(QString(pipeline->file_path.c_str()));
         } break;
         }
+    }
+    else {
+        on_stopped();
     }
 }
 

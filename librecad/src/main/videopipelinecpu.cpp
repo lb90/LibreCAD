@@ -89,15 +89,20 @@ static void
 set_filesource(GstElement *source, const std::string& path) {
     g_object_set(source, "location", path.c_str(), NULL);
 }
-static void
+static bool
 set_capsfilter(GstElement *capsfilter) {
-    GstCaps *caps = gst_caps_new_simple("video/x-raw",
-                    "format", G_TYPE_STRING, "xrgb",
-                    NULL);
+    GstCaps *caps = gst_caps_from_string(
+                "video/x-raw"
+                ",format=(string)xRGB"
+                ",width=(int)[1,2147483647]"
+                ",height=(int)[1,2147483647]");
+    if (!caps)
+        return false;
 
     g_object_set(capsfilter, "caps", caps, NULL);
 
-    gst_object_unref(caps);
+    gst_caps_unref(caps);
+    return true;
 }
 static void
 set_appsink(GstElement *appsink) {
@@ -198,7 +203,10 @@ bool VideoPipelineCpu::construct_common_priv(
     }
 
     set_source(source);
-    set_capsfilter(sink);
+    if (!set_capsfilter(sink)) {
+        util_log("could not set video destination format caps.");
+        return false;
+    }
     set_appsink(sink);
     g_signal_connect(sink, "new-sample",
                      G_CALLBACK(new_sample_cb_forward),

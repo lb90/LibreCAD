@@ -47,8 +47,8 @@ void VideoPipelineMoniker::reset() {
         pause(); /* be sure to pause */
 
     /* disconnect all connected signals */
-    disconnect(pipeline.get(), SIGNAL(PipelineEnded), this, SLOT(OnPipelineEnded));
-    disconnect(pipeline.get(), SIGNAL(StateChanged), this, SLOT(OnStateChanged));
+    disconnect(pipeline.get(), &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
+    disconnect(pipeline.get(), &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
 
     pipeline.reset(); /* drop pipeline */
 }
@@ -56,10 +56,12 @@ void VideoPipelineMoniker::reset() {
 bool VideoPipelineMoniker::wrap_file_pipeline(const std::string& path) {
     reset();
     pipeline = gst->get_file_pipeline(path);
+    if (!pipeline)
+        return false;
 
     /* connect signals */
-    connect(pipeline.get(), SIGNAL(StateChanged), this, SLOT(OnStateChanged));
-    connect(pipeline.get(), SIGNAL(PipelineEnded), this, SLOT(OnPipelineEnded));
+    connect(pipeline.get(), &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
+    connect(pipeline.get(), &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
 
     use = Use::unique;
     return true;
@@ -68,10 +70,12 @@ bool VideoPipelineMoniker::wrap_file_pipeline(const std::string& path) {
 bool VideoPipelineMoniker::wrap_camera_pipeline(int index) {
     reset();
     pipeline = gst->get_camera_pipeline(index);
+    if (!pipeline)
+        return false;
 
     /* connect signals */
-    connect(pipeline.get(), SIGNAL(StateChanged), this, SLOT(OnStateChanged));
-    connect(pipeline.get(), SIGNAL(PipelineEnded), this, SLOT(OnPipelineEnded));
+    connect(pipeline.get(), &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
+    connect(pipeline.get(), &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
 
     use = Use::shared;
     return true;
