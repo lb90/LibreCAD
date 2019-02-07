@@ -99,15 +99,11 @@ QG_VideoWidget::QG_VideoWidget(QWidget *parent,
     connect(play_button, &QAbstractButton::clicked, this, &QG_VideoWidget::play);
 
     /*TODO refresh camera list */
-    std::vector<std::string> camera_names;
-    if (gst->enumerate_camera_sources(camera_names)) {
-        QStringList cameras;
-
-        for (const std::string& camera_name : camera_names)
-            cameras.append(QString(camera_name.c_str()));
-
-        camera_combo->addItems(cameras);
-    }
+    std::vector<std::string> camera_names = gst->get_camera_names();
+    QStringList cameras;
+    for (const std::string& camera_name : camera_names)
+        cameras.append(QString(camera_name.c_str()));
+    camera_combo->addItems(cameras);
     /*TODO always select in combobox?*/
 }
 
@@ -243,6 +239,14 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
                 this, &QG_VideoWidget::PipelineStateChanged);
 
         VideoPipeline *pipeline = view->get_video_moniker().get_pipeline();
+
+        /* state changed only notifies playing and paused if it ever got there.
+         * we may be betweeen constructed and playing (so we're about-to-play),
+         * in this case there is no state changed. */
+        set_source_part_enabled(false);
+        stop_button->setEnabled(true);
+        pause_button->setEnabled(false);
+        play_button->setEnabled(false);
         pipeline->generate_state_changed();
 
         switch (pipeline->get_source_type()) {

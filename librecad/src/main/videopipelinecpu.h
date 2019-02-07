@@ -4,9 +4,6 @@
 #include "videopipeline.h"
 
 #include <QObject>
-#include <QMutex>
-#include <QAtomicPointer>
-#include <QImage>
 
 #include <gst/gst.h>
 
@@ -34,10 +31,6 @@ public:
 
     void pause() override;
     void play() override;
-
-public:
-    QImage *frame {nullptr};
-    QMutex frame_lock;
 
 private:
     GstPipeline *pipeline {nullptr};

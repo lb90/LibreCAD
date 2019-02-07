@@ -91,11 +91,9 @@ set_filesource(GstElement *source, const std::string& path) {
 }
 static bool
 set_capsfilter(GstElement *capsfilter) {
-    GstCaps *caps = gst_caps_from_string(
-                "video/x-raw"
-                ",format=(string)xRGB"
-                ",width=(int)[1,2147483647]"
-                ",height=(int)[1,2147483647]");
+    GstCaps *caps = gst_caps_new_simple("video/x-raw",
+                                        "format", G_TYPE_STRING, "xRGB",
+                                        NULL);
     if (!caps)
         return false;
 
@@ -261,10 +259,10 @@ GstFlowReturn VideoPipelineCpu::new_sample_cb() {
                                 size_t sz = 4U * unsigned(width) * unsigned(height); /*TODO check for overflow */
                                 memcpy(dst, src, sz);
 
-                                QImage *old_image = frame;
-                                    frame_lock.lock();
-                                    frame = new_image;
-                                    frame_lock.unlock();
+                                QImage *old_image = image;
+                                image_lock.lock();
+                                image = new_image;
+                                image_lock.unlock();
                                 emit NewFrame();
                                 delete old_image;
 
@@ -324,14 +322,18 @@ gboolean VideoPipelineCpu::bus_cb(GstBus *, GstMessage *msg) {
                 GstState state = GST_STATE_NULL;
                 gst_message_parse_state_changed(msg, NULL, &state, NULL);
                 switch (state) {
-                    case GST_STATE_PLAYING:
-                        { emit StateChanged(StateNotify::playing); }
-                    break;
-                    case GST_STATE_PAUSED:
-                        { emit StateChanged(StateNotify::paused); }
-                    break;
-                    default:
-                    break;
+                case GST_STATE_PLAYING: {
+                    last_known_state = StateNotify::playing;
+                    have_last_known_state = true;
+                    emit StateChanged(StateNotify::playing);
+                } break;
+                case GST_STATE_PAUSED: {
+                    last_known_state = StateNotify::paused;
+                    have_last_known_state = true;
+                    emit StateChanged(StateNotify::paused);
+                } break;
+                default:
+                break;
                 }
             }
         }

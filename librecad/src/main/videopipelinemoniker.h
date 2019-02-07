@@ -27,7 +27,8 @@ public:
     void play();
     void pause();
 
-    const QImage* get_image() const;
+    const QImage* get_image();
+    void release_image();
 
     bool wrap_file_pipeline(const std::string& path);
     bool wrap_camera_pipeline(int index);

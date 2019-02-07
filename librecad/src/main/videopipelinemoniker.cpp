@@ -46,11 +46,12 @@ void VideoPipelineMoniker::reset() {
     if (use == Use::shared)
         pause(); /* be sure to pause */
 
-    /* disconnect all connected signals */
-    disconnect(pipeline.get(), &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
-    disconnect(pipeline.get(), &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
-
+    auto a = pipeline.get();
     pipeline.reset(); /* drop pipeline */
+
+    /* disconnect all connected signals */
+    disconnect(a, &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
+    disconnect(a, &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
 }
 
 bool VideoPipelineMoniker::wrap_file_pipeline(const std::string& path) {
@@ -79,6 +80,22 @@ bool VideoPipelineMoniker::wrap_camera_pipeline(int index) {
 
     use = Use::shared;
     return true;
+}
+
+const QImage* VideoPipelineMoniker::get_image(){
+    if (use == Use::shared) {
+        if (paused) {
+            return paused_frame;
+        }
+    }
+    pipeline->image_lock.lock();
+    return pipeline->image;
+}
+
+void VideoPipelineMoniker::release_image() {
+    if (use == Use::shared)
+       return;
+    pipeline->image_lock.unlock();
 }
 
 void VideoPipelineMoniker::OnPipelineEnded() {

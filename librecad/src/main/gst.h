@@ -26,10 +26,14 @@ public:
     std::shared_ptr<VideoPipeline> get_camera_pipeline(int index);
     std::shared_ptr<VideoPipeline> get_file_pipeline(const std::string& path);
 
-public:
-    bool enumerate_camera_sources(std::vector<std::string>& cameras);
+    std::vector<std::string> get_camera_names() { return camera_names; }
 
 private:
+    bool init_gstreamer();
+    bool enumerate_camera_sources();
+
+private:
+    std::vector<std::string> camera_names;
     std::vector<std::weak_ptr<VideoPipeline>> camera_pipelines;
 
     std::function<void(const std::string&)> util_log;

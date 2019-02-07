@@ -2,6 +2,8 @@
 #define VIDEOPIPELINE_H
 
 #include <QObject>
+#include <QMutex>
+#include <QImage>
 
 class VideoPipeline
  : public QObject
@@ -40,9 +42,14 @@ public:
     SourceType get_source_type() const { return source_type; }
     ObjectState get_object_state() const { return object_state; }
 
-    void generate_state_changed() {}
+    void generate_state_changed();
+
+public:
     int camera_index {-1};
     std::string file_path {};
+    QImage *image {nullptr};
+    QMutex image_lock {};
+
 signals:
     void NewFrame();
     void StateChanged(StateNotify);
@@ -51,6 +58,8 @@ signals:
 protected:
     SourceType source_type { SourceType::file };
     ObjectState object_state { ObjectState::basic };
+    StateNotify last_known_state;
+    bool        have_last_known_state {false};
 };
 
 #endif // VIDEOPIPELINE_H

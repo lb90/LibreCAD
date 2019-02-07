@@ -10,6 +10,17 @@ const
 unsigned int MAX_NAME_LENGTH = 30U;
 
 bool Gst::init() {
+    if (!init_gstreamer())
+        return false;
+    if (!enumerate_camera_sources())
+        return false;
+    for (unsigned i = 0; i < camera_names.size(); ++i) {
+        camera_pipelines.emplace_back();
+    }
+    return true;
+}
+
+bool Gst::init_gstreamer() {
     bool is_ok = true;
 
     if (!gst_is_initialized()) {
@@ -47,6 +58,8 @@ std::shared_ptr<VideoPipeline> Gst::get_camera_pipeline(int index) {
         camera_pipelines.at(unsigned(index)) = pipeline;
     }
     assert(pipeline->get_object_state() != VideoPipeline::ObjectState::basic);
+
+    return pipeline;
 }
 
 std::shared_ptr<VideoPipeline> Gst::get_file_pipeline(const std::string& path) {
@@ -58,11 +71,11 @@ std::shared_ptr<VideoPipeline> Gst::get_file_pipeline(const std::string& path) {
     return pipeline;
 }
 
-bool Gst::enumerate_camera_sources(std::vector<std::string>& cameras) {
+bool Gst::enumerate_camera_sources() {
     std::string base = "source_enum_element";
     GstElement *source = NULL;
 
-    cameras.clear();
+    camera_names.clear();
 
 #ifdef Q_OS_WIN
     for (int i = 0; i < MAX_CAMERAS; i++) {
@@ -84,9 +97,9 @@ bool Gst::enumerate_camera_sources(std::vector<std::string>& cameras) {
 
             g_object_get(source, "device-name", &device_name, NULL);
             if (device_name && strlen(device_name))
-                cameras.emplace_back(device_name, 0, MAX_NAME_LENGTH);
+                camera_names.emplace_back(device_name, 0, MAX_NAME_LENGTH);
             else
-                cameras.emplace_back("unknown source");
+                camera_names.emplace_back("unknown source");
         }
     }
 #else
@@ -112,9 +125,9 @@ bool Gst::enumerate_camera_sources(std::vector<std::string>& cameras) {
 
             g_object_get(source, "device-name", &device_name, NULL);
             if (device_name && strlen(device_name))
-                cameras.emplace_back(device_name, 0, MAX_NAME_LENGTH);
+                camera_names.emplace_back(device_name, 0, MAX_NAME_LENGTH);
             else
-                cameras.emplace_back("unknown source");
+                camera_names.emplace_back("unknown source");
         }
     }
 #endif

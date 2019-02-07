@@ -943,6 +943,10 @@ void QG_GraphicView::paintEvent(QPaintEvent *)
 
     // Finally paint the layers back on the screen, bitblk to the rescue!
     RS_PainterQt wPainter(this);
+    if (videomoniker.active()) {
+        videomoniker.get_image();
+        videomoniker.release_image();
+    }
     wPainter.drawPixmap(0,0,*PixmapLayer1);
     wPainter.drawPixmap(0,0,*PixmapLayer2);
     wPainter.drawPixmap(0,0,*PixmapLayer3);
