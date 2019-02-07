@@ -27,7 +27,7 @@ public:
     void play();
     void pause();
 
-    const QImage* get_image();
+    QImage* get_image();
     void release_image();
 
     bool wrap_file_pipeline(const std::string& path);
@@ -51,8 +51,9 @@ private:
     std::shared_ptr<VideoPipeline> pipeline {nullptr};
 
     Use use {Use::unique};
+    bool started {false};
     bool paused {false};
-    QImage *paused_frame {nullptr};
+    QImage paused_image {};
 
     Gst *gst;
     QWidget *graphicview;

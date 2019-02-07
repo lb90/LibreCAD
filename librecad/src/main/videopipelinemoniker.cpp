@@ -3,6 +3,8 @@
 #include "gst.h"
 #include "lc_application.h"
 
+#include <QWidget>
+
 VideoPipelineMoniker::VideoPipelineMoniker(QWidget *view) {
     gst = ((LC_Application*)qApp)->gst();
     if (!gst)
@@ -20,9 +22,10 @@ void VideoPipelineMoniker::play() {
     if (!pipeline)
         return;
     if (use == Use::shared) {
-        if (paused) {
+        if (!started || paused) {
             pipeline->play();
             paused = false;
+            started = true;
         }
     }
     else pipeline->play();
@@ -34,6 +37,9 @@ void VideoPipelineMoniker::pause() {
     if (use == Use::shared) {
         if (!paused) {
             pipeline->pause();
+            pipeline->image_lock.lock();
+            paused_image = pipeline->image->copy();
+            pipeline->image_lock.unlock();
             paused = true;
         }
     }
@@ -46,12 +52,16 @@ void VideoPipelineMoniker::reset() {
     if (use == Use::shared)
         pause(); /* be sure to pause */
 
-    auto a = pipeline.get();
+    emit StateChanged(2);
+    /* disconnect all connected signals */
+    disconnect(pipeline.get(), &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
+    disconnect(pipeline.get(), &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
+    void (QWidget::* update_slot)() = &QWidget::update;
+    disconnect(pipeline.get(), &VideoPipeline::NewFrame, graphicview, update_slot);
+
     pipeline.reset(); /* drop pipeline */
 
-    /* disconnect all connected signals */
-    disconnect(a, &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
-    disconnect(a, &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
+    graphicview->update();
 }
 
 bool VideoPipelineMoniker::wrap_file_pipeline(const std::string& path) {
@@ -63,6 +73,8 @@ bool VideoPipelineMoniker::wrap_file_pipeline(const std::string& path) {
     /* connect signals */
     connect(pipeline.get(), &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
     connect(pipeline.get(), &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
+    void (QWidget::* update_slot)() = &QWidget::update;
+    connect(pipeline.get(), &VideoPipeline::NewFrame, graphicview, update_slot);
 
     use = Use::unique;
     return true;
@@ -77,15 +89,17 @@ bool VideoPipelineMoniker::wrap_camera_pipeline(int index) {
     /* connect signals */
     connect(pipeline.get(), &VideoPipeline::StateChanged, this, &VideoPipelineMoniker::OnStateChanged);
     connect(pipeline.get(), &VideoPipeline::Ended, this, &VideoPipelineMoniker::OnPipelineEnded);
+    void (QWidget::* update_slot)() = &QWidget::update;
+    connect(pipeline.get(), &VideoPipeline::NewFrame, graphicview, update_slot);
 
     use = Use::shared;
     return true;
 }
 
-const QImage* VideoPipelineMoniker::get_image(){
+QImage* VideoPipelineMoniker::get_image(){
     if (use == Use::shared) {
         if (paused) {
-            return paused_frame;
+            return &paused_image;
         }
     }
     pipeline->image_lock.lock();
@@ -94,7 +108,8 @@ const QImage* VideoPipelineMoniker::get_image(){
 
 void VideoPipelineMoniker::release_image() {
     if (use == Use::shared)
-       return;
+        if (paused)
+            return;
     pipeline->image_lock.unlock();
 }
 

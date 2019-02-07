@@ -92,7 +92,7 @@ set_filesource(GstElement *source, const std::string& path) {
 static bool
 set_capsfilter(GstElement *capsfilter) {
     GstCaps *caps = gst_caps_new_simple("video/x-raw",
-                                        "format", G_TYPE_STRING, "xRGB",
+                                        "format", G_TYPE_STRING, "BGRx",
                                         NULL);
     if (!caps)
         return false;
@@ -246,7 +246,7 @@ GstFlowReturn VideoPipelineCpu::new_sample_cb() {
             if (gst_video_info_from_caps(video_info,
                      gst_sample_get_caps(sample)))
             {
-                if (video_info->finfo->format == GST_VIDEO_FORMAT_xRGB) {
+                if (video_info->finfo->format == GST_VIDEO_FORMAT_BGRx) {
                     unsigned char *src = info.data;
                     gint width = video_info->width;
                     gint height = video_info->height;
@@ -256,17 +256,36 @@ GstFlowReturn VideoPipelineCpu::new_sample_cb() {
                         if (new_image) {
                             uchar *dst = new_image->bits();
                             if (dst) {
-                                size_t sz = 4U * unsigned(width) * unsigned(height); /*TODO check for overflow */
-                                memcpy(dst, src, sz);
+                                gsize compact_size = gsize(width) * gsize(height) * 4; /*TODO check for overflow */
+                                gsize real_size = info.size;
+                                if (real_size >= compact_size) {
+                                    gsize total_padding = real_size - compact_size;
+                                    if (total_padding % gsize(height) == 0) {
+                                        gsize stride_size = total_padding / gsize(height);
+                                        if (stride_size == 0) {
+                                            memcpy(dst, src, real_size);
+                                        }
+                                        else {
+                                            unsigned char* current_src = src;
+                                            unsigned char* current_dst = dst;
+                                            for (int i = 0; i < height; i++) {
+                                                memcpy(current_dst, current_src, gsize(width) * 4);
+                                                current_dst += width * 4;
+                                                current_src += width * 4;
+                                                current_src += stride_size;
+                                            }
+                                        }
 
-                                QImage *old_image = image;
-                                image_lock.lock();
-                                image = new_image;
-                                image_lock.unlock();
-                                emit NewFrame();
-                                delete old_image;
+                                        QImage *old_image = image;
+                                        image_lock.lock();
+                                        image = new_image;
+                                        image_lock.unlock();
+                                        emit NewFrame();
+                                        delete old_image;
 
-                                ok = true;
+                                        ok = true;
+                                    }
+                                }
                             }
                         }
                     }

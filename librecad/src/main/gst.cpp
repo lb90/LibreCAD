@@ -43,7 +43,7 @@ bool Gst::init_gstreamer() {
 }
 
 std::shared_ptr<VideoPipeline> Gst::get_camera_pipeline(int index) {
-    if (index < 0 || unsigned(index) < camera_pipelines.size()) {
+    if (index < 0 || unsigned(index) >= camera_pipelines.size()) {
         util_log("live camera index is out of range");
         return nullptr;
     }
