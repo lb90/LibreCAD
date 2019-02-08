@@ -36,6 +36,7 @@ public:
     void reset();
 
     bool active() const { return bool(pipeline); }
+    void generate_state_changed();
 
     VideoPipeline* get_pipeline() { return pipeline.get(); }
 signals:

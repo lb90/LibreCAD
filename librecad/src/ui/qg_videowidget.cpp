@@ -154,6 +154,10 @@ void QG_VideoWidget::stop() {
     if (!view->get_video_moniker().active())
         return;
 
+    stop_button->setEnabled(true);
+    pause_button->setEnabled(false);
+    play_button->setEnabled(false);
+
     view->get_video_moniker().reset();
 }
 void QG_VideoWidget::pause() {
@@ -161,6 +165,10 @@ void QG_VideoWidget::pause() {
         return;
     if (!view->get_video_moniker().active())
         return;
+
+    stop_button->setEnabled(true);
+    pause_button->setEnabled(true);
+    play_button->setEnabled(false);
 
     view->get_video_moniker().pause();
 }
@@ -238,8 +246,6 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
         connect(&view->get_video_moniker(), &VideoPipelineMoniker::StateChanged,
                 this, &QG_VideoWidget::PipelineStateChanged);
 
-        VideoPipeline *pipeline = view->get_video_moniker().get_pipeline();
-
         /* state changed only notifies playing and paused if it ever got there.
          * we may be betweeen constructed and playing (so we're about-to-play),
          * in this case there is no state changed. */
@@ -247,8 +253,9 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
         stop_button->setEnabled(true);
         pause_button->setEnabled(false);
         play_button->setEnabled(false);
-        pipeline->generate_state_changed();
+        view->get_video_moniker().generate_state_changed();
 
+        VideoPipeline *pipeline = view->get_video_moniker().get_pipeline();
         switch (pipeline->get_source_type()) {
         case VideoPipeline::SourceType::camera: {
             source_stack->setCurrentIndex(0);

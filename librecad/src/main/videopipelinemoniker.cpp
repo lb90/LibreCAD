@@ -26,6 +26,7 @@ void VideoPipelineMoniker::play() {
             pipeline->play();
             paused = false;
             started = true;
+            emit StateChanged(0);
         }
     }
     else pipeline->play();
@@ -41,6 +42,7 @@ void VideoPipelineMoniker::pause() {
             paused_image = pipeline->image->copy();
             pipeline->image_lock.unlock();
             paused = true;
+            emit StateChanged(1);
         }
     }
     else pipeline->pause();
@@ -111,6 +113,15 @@ void VideoPipelineMoniker::release_image() {
         if (paused)
             return;
     pipeline->image_lock.unlock();
+}
+
+void VideoPipelineMoniker::generate_state_changed() {
+    if (use == Use::shared && started && paused) {
+        emit StateChanged(1);
+    }
+    else {
+        pipeline->generate_state_changed();
+    }
 }
 
 void VideoPipelineMoniker::OnPipelineEnded() {
