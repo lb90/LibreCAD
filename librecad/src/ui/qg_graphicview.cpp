@@ -947,7 +947,38 @@ void QG_GraphicView::paintEvent(QPaintEvent *)
     if (videomoniker.active()) {
         QImage *image = videomoniker.get_image();
         if (image) {
-            wPainter.drawImage(QPoint(0,0), *image);
+            switch (video_position) {
+                case VideoPosition::view_centered: {
+                    QRect src_rect {0,0,image->width(),image->height()};
+                    QRect dst_rect {0,0,getWidth(),getHeight()};
+                    if (image->width() > getWidth()) {
+                        src_rect.setX((image->width()-getWidth())/2);
+                        src_rect.setWidth(getWidth());
+                    }
+                    else {
+                        dst_rect.setX((getWidth()-image->width())/2);
+                        dst_rect.setWidth(image->width());
+                    }
+                    if (image->height() > getHeight()) {
+                        src_rect.setY((image->height()-getHeight())/2);
+                        src_rect.setHeight(getHeight());
+                    }
+                    else {
+                        dst_rect.setY((getHeight()-image->height())/2);
+                        dst_rect.setHeight(image->height());
+                    }
+
+                    wPainter.drawImage(dst_rect, *image, src_rect);
+                }
+                break;
+                case VideoPosition::doc_centered: {
+                }
+                break;
+                case VideoPosition::view_upperleft: {
+                    wPainter.drawImage(QPoint(0,0), *image);
+                }
+                break;
+            }
         }
         videomoniker.release_image();
     }
