@@ -78,5 +78,6 @@ core
 *.core
 vgcore.*
 core.*
+!librecad/src/main/fmt/core.h
 
 .qmake.stash
