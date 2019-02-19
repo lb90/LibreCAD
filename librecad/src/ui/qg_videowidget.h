@@ -20,6 +20,7 @@ class Gst;
 class QG_VideoWidget
  : public QWidget
 {
+Q_OBJECT
 public:
     QG_VideoWidget(QWidget *parent,
                    const char *name = NULL,
@@ -61,8 +62,6 @@ private:
     void pause();
     void play();
 
-public slots:
-    void subWindowActivated(QMdiSubWindow*);
 private slots:
     void PipelineStateChanged(int);
 

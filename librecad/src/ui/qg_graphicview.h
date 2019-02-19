@@ -161,6 +161,13 @@ protected:
     QMap<QString, QMenu*> menus;
 
     VideoPipelineMoniker videomoniker {this};
+    enum class VideoPosition {
+        doc_upperleft,
+        doc_centered,
+        view_upperleft,
+        view_centered
+    } video_position {VideoPosition::view_centered};
+
 private:
     bool antialiasing{false};
     bool scrollbars{false};

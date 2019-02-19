@@ -68,12 +68,18 @@ QG_VideoWidget::QG_VideoWidget(QWidget *parent,
 
     QHBoxLayout *control_hbox = new QHBoxLayout();
       stop_button = new QToolButton();
+      stop_button->setFixedSize(QSize(40,40));
+      stop_button->setIconSize(QSize(40,40));
       stop_button->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
     control_hbox->addWidget(stop_button);
       pause_button = new QToolButton();
+      pause_button->setFixedSize(QSize(40,40));
+      pause_button->setIconSize(QSize(40,40));
       pause_button->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
     control_hbox->addWidget(pause_button);
       play_button = new QToolButton();
+      play_button->setFixedSize(QSize(40,40));
+      play_button->setIconSize(QSize(40,40));
       play_button->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
     control_hbox->addWidget(play_button);
 
@@ -82,6 +88,7 @@ QG_VideoWidget::QG_VideoWidget(QWidget *parent,
     main_vbox->addWidget(source_widget);
     main_vbox->addWidget(make_widget(page_hbox), 0, Qt::AlignRight);
     main_vbox->addWidget(make_widget(control_hbox), 0, Qt::AlignCenter);
+    main_vbox->addStretch();
     setLayout(main_vbox);
 
     source_prev->setEnabled(false);
@@ -139,9 +146,7 @@ void QG_VideoWidget::source_page_next() {
 }
 
 void QG_VideoWidget::browse_file() {
-    QString fileName = QFileDialog::getOpenFileName(this, "Apri file video", QString(),
-                                                    "File video (*.mpeg *.avi *.mpg);;"
-                                                    "Tutti i file (*.*)");
+    QString fileName = QFileDialog::getOpenFileName(this, "Apri file video", QString());
     if (!fileName.isEmpty()) {
         file_edit->setText(fileName);
         play_button->setEnabled(true);
@@ -199,8 +204,9 @@ void QG_VideoWidget::play() {
                 if (file_edit->text().isEmpty()) {
                     QMessageBox msgBox;
                     msgBox.setText("Selezionare un file");
-                    open_button->setFocus();
                     msgBox.exec();
+                    open_button->setFocus();
+                    return;
                 }
                 view->get_video_moniker().wrap_file_pipeline(file_edit->text().toStdString());
             } break;

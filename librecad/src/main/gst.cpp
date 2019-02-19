@@ -7,7 +7,7 @@ int MAX_CAMERAS = 10;
 
 static
 const
-unsigned int MAX_NAME_LENGTH = 30U;
+unsigned int MAX_NAME_LENGTH = 80U;
 
 bool Gst::init() {
     if (!init_gstreamer())
