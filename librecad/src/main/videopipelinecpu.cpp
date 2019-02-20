@@ -312,8 +312,7 @@ gboolean VideoPipelineCpu::bus_cb(GstBus *, GstMessage *msg) {
 
             gst_message_parse_error(msg, &error, &debug);
             if (error && error->message) {
-                util_log(fmt::format("Errore nella pipeline video\n{}",
-                                       error->message).c_str());
+                util_log(error->message);
             }
             else if (debug) {
                 util_log(fmt::format("Errore nella pipeline video\n{}",
@@ -397,19 +396,19 @@ void VideoPipelineCpu::pad_added_cb(GstElement* element, GstPad *pad) {
 
 void VideoPipelineCpu::no_more_pads_cb(GstElement* element) {
     /* check if videoconvert pad was linked. */
-    GstPad *sink_pad = gst_element_get_static_pad (converter, "sink");
-    if (!gst_pad_is_linked(sink_pad)) {
-        GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
+    //GstPad *sink_pad = gst_element_get_static_pad (converter, "sink");
+    //if (!gst_pad_is_linked(sink_pad)) {
+    //    GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
         /*TODO create a GError*/
-        GstMessage *msg = gst_message_new_error(GST_OBJECT(element), NULL,
-                                          "Formato video non riconosciuto");
-        gst_bus_post(bus, msg);
+    //    GstMessage *msg = gst_message_new_error(GST_OBJECT(element), NULL,
+    //                                      "Formato video non riconosciuto");
+    //    gst_bus_post(bus, msg);
 
         /* do not gst_message_unref!
          * ownership is transferred to bus */
-        gst_object_unref(bus);
-    }
-    gst_object_unref(sink_pad);
+    //    gst_object_unref(bus);
+    //}
+    //gst_object_unref(sink_pad);
 }
 
 void VideoPipelineCpu::pause() {

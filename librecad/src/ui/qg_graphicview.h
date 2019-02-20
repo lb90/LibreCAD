@@ -166,7 +166,9 @@ protected:
         doc_centered,
         view_upperleft,
         view_centered
-    } video_position {VideoPosition::view_centered};
+    } video_position {VideoPosition::doc_centered};
+    bool videofactor_set {true};
+    float videofactor {1.0};
 
 private:
     bool antialiasing{false};

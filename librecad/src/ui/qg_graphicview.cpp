@@ -972,10 +972,33 @@ void QG_GraphicView::paintEvent(QPaintEvent *)
                 }
                 break;
                 case VideoPosition::doc_centered: {
+                    if (videofactor_set) {
+                        QPointF c(toGui(RS_Vector(0,0)).x, toGui(RS_Vector(0,0)).y);
+                        QPointF p(c.x() - videofactor*image->width()/2, c.y() - videofactor*image->height()/2);
+                        if (p.x() < getWidth() && p.y() < getHeight()) {
+                            wPainter.drawImage(QRectF(p, QSizeF(videofactor*image->width(),videofactor*image->height())),
+                                               *image,
+                                               QRectF(0.0,0.0,image->width(),image->height()));
+                        }
+                    }
+                    else {
+                        QPoint c(toGui(RS_Vector(0,0)).x, toGui(RS_Vector(0,0)).y);
+                        QPoint p(c.x() - image->width()/2, c.y() - image->height()/2);
+                        if (p.x() < getWidth() && p.y() < getHeight()) {
+                            wPainter.drawImage(QRect(p, QSize(image->width(),image->height())),
+                                               *image,
+                                               QRect(0.0,0.0,image->width(),image->height()));
+                        }
+                    }
                 }
                 break;
                 case VideoPosition::view_upperleft: {
-                    wPainter.drawImage(QPoint(0,0), *image);
+                    if (videofactor_set) {
+                        wPainter.drawImage(QRectF(0,0,videofactor*image->width(),videofactor*image->height()), *image);
+                    }
+                    else {
+                        wPainter.drawImage(QPoint(0,0), *image);
+                    }
                 }
                 break;
             }
