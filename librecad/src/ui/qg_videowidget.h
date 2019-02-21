@@ -11,6 +11,10 @@ class QLabel;
 class QComboBox;
 class QLineEdit;
 class QToolButton;
+class QRadioButton;
+class QSlider;
+class QSpinBox;
+class QCheckBox;
 class QMdiSubWindow;
 QT_END_NAMESPACE
 
@@ -45,6 +49,19 @@ private:
     QToolButton    *stop_button;
     QToolButton    *pause_button;
     QToolButton    *play_button;
+    QRadioButton   *radio_view_upperleft;
+    QRadioButton   *radio_view_centered;
+    QRadioButton   *radio_doc_upperleft;
+    QRadioButton   *radio_doc_centered;
+    QCheckBox      *check_off_x;
+    QSlider        *slider_off_x;
+    QSpinBox       *spin_off_x;
+    QCheckBox      *check_off_y;
+    QSlider        *slider_off_y;
+    QSpinBox       *spin_off_y;
+    QCheckBox      *check_zoom;
+    QSlider        *slider_zoom;
+    QSpinBox       *spin_zoom;
 
     QG_GraphicView *view {nullptr};
 
@@ -61,6 +78,14 @@ private:
     void stop();
     void pause();
     void play();
+
+private:
+    void on_check_off_x_changed(int);
+    void on_check_off_y_changed(int);
+    void on_check_zoom_changed(int);
+    void on_off_x_changed(bool, int);
+    void on_off_y_changed(bool, int);
+    void on_zoom_changed(bool, int);
 
 private slots:
     void PipelineStateChanged(int);

@@ -104,7 +104,22 @@ public:
     void destroyMenu(const QString& activator);
     void setMenu(const QString& activator, QMenu* menu);
 
+    struct Video {
+        enum class Position {
+            doc_upperleft,
+            doc_centered,
+            view_upperleft,
+            view_centered
+        } position {Position::doc_centered};
+        bool zoom_set {false};
+        int zoom {0};
+        bool off_x_set {false};
+        int off_x {0};
+        bool off_y_set {false};
+        int off_y {0};
+    };
     VideoPipelineMoniker& get_video_moniker() { return videomoniker; }
+    Video& video() { return video_; }
 protected:
 	void mousePressEvent(QMouseEvent* e) override;
 	void mouseDoubleClickEvent(QMouseEvent* e) override;
@@ -161,14 +176,7 @@ protected:
     QMap<QString, QMenu*> menus;
 
     VideoPipelineMoniker videomoniker {this};
-    enum class VideoPosition {
-        doc_upperleft,
-        doc_centered,
-        view_upperleft,
-        view_centered
-    } video_position {VideoPosition::doc_centered};
-    bool videofactor_set {true};
-    float videofactor {1.0};
+    Video video_ {};
 
 private:
     bool antialiasing{false};
