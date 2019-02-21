@@ -737,6 +737,7 @@ void QC_ApplicationWindow::slotWindowActivated(QMdiSubWindow* w) {
     RS_DEBUG->print("QC_ApplicationWindow::slotWindowActivated begin");
 
     if(w==nullptr) {
+        videoWidget->setGraphicView(NULL);
         emit windowsChanged(false);
         activedMdiSubWindow=w;
         return;
@@ -791,10 +792,7 @@ void QC_ApplicationWindow::slotWindowActivated(QMdiSubWindow* w) {
             emit printPreviewChanged(view->isPrintPreview());
         }
 
-        if (view)
-        {
-            videoWidget->setGraphicView(view);
-        }
+        videoWidget->setGraphicView(view);
 
         if(snapToolBar){
             actionHandler->slotSetSnaps(snapToolBar->getSnaps());

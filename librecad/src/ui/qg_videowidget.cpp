@@ -102,6 +102,10 @@ QG_VideoWidget::QG_VideoWidget(QWidget *parent,
     vbox_pos->addWidget(radio_doc_centered);
     vbox_pos->addStretch(1);
     groupbox->setLayout(vbox_pos);
+    connect(radio_view_upperleft, &QAbstractButton::toggled, this, &QG_VideoWidget::on_radio_position_toggled);
+    connect(radio_view_centered, &QAbstractButton::toggled, this, &QG_VideoWidget::on_radio_position_toggled);
+    connect(radio_doc_upperleft, &QAbstractButton::toggled, this, &QG_VideoWidget::on_radio_position_toggled);
+    connect(radio_doc_centered, &QAbstractButton::toggled, this, &QG_VideoWidget::on_radio_position_toggled);
 
     QHBoxLayout *hbox_off_x = new QHBoxLayout();
     QHBoxLayout *hbox_off_y = new QHBoxLayout();
@@ -128,6 +132,12 @@ QG_VideoWidget::QG_VideoWidget(QWidget *parent,
     vbox_off_zoom->addWidget(make_widget(hbox_off_x));
     vbox_off_zoom->addWidget(make_widget(hbox_off_y));
     vbox_off_zoom->addWidget(make_widget(hbox_zoom));
+    slider_off_x->setRange(-100,100);
+    slider_off_y->setRange(-100,100);
+    slider_zoom->setRange(-100,100);
+    spin_off_x->setRange(-100,100);
+    spin_off_y->setRange(-100,100);
+    spin_zoom->setRange(-100,100);
     connect(check_off_x, &QCheckBox::stateChanged, this, &QG_VideoWidget::on_check_off_x_changed);
     connect(check_off_y, &QCheckBox::stateChanged, this, &QG_VideoWidget::on_check_off_y_changed);
     connect(check_zoom, &QCheckBox::stateChanged, this, &QG_VideoWidget::on_check_zoom_changed);
@@ -169,6 +179,13 @@ QG_VideoWidget::QG_VideoWidget(QWidget *parent,
         cameras.append(QString(camera_name.c_str()));
     camera_combo->addItems(cameras);
     /*TODO always select in combobox?*/
+
+    check_off_x->setChecked(false);
+    check_off_y->setChecked(false);
+    check_zoom->setChecked(false);
+    slider_off_x->setValue(0);
+    slider_off_y->setValue(0);
+    slider_zoom->setValue(0);
 }
 
 void QG_VideoWidget::source_page_prev() {
@@ -301,9 +318,40 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
 
     if (!view) {
         file_edit->setText(QString());
+        radio_doc_centered->setCheckable(false);
+        radio_doc_upperleft->setCheckable(false);
+        radio_view_centered->setCheckable(false);
+        radio_view_upperleft->setCheckable(false);
+        check_off_x->setChecked(false);
+        check_off_y->setChecked(false);
+        check_zoom->setChecked(false);
+        slider_off_x->setValue(0);
+        slider_off_y->setValue(0);
+        slider_zoom->setValue(0);
         setEnabled(false);
         return;
     }
+
+    radio_doc_centered->setCheckable(true);
+    radio_doc_upperleft->setCheckable(true);
+    radio_view_centered->setCheckable(true);
+    radio_view_upperleft->setCheckable(true);
+    switch (view->video().position) {
+    case QG_GraphicView::Video::Position::doc_centered:
+        radio_doc_centered->setChecked(true); break;
+    case QG_GraphicView::Video::Position::doc_upperleft:
+        radio_doc_upperleft->setChecked(true); break;
+    case QG_GraphicView::Video::Position::view_centered:
+        radio_view_centered->setChecked(true); break;
+    case QG_GraphicView::Video::Position::view_upperleft:
+        radio_view_upperleft->setChecked(true); break;
+    }
+    check_off_x->setChecked(view->video().off_x_set);
+    check_off_y->setChecked(view->video().off_y_set);
+    check_zoom->setChecked(view->video().zoom_set);
+    slider_off_x->setValue(view->video().off_x);
+    slider_off_y->setValue(view->video().off_y);
+    slider_zoom->setValue(view->video().zoom);
 
     if (view->get_video_moniker().active()) {
         connect(&view->get_video_moniker(), &VideoPipelineMoniker::StateChanged,
@@ -393,6 +441,29 @@ void QG_VideoWidget::set_source_part_enabled(bool arg) {
     }
 }
 
+void QG_VideoWidget::set_playing_part_enabled(bool arg) {
+
+}
+
+void QG_VideoWidget::on_radio_position_toggled(bool checked) {
+    if (!view)
+        return;
+    if (checked) {
+        if (radio_doc_centered->isChecked()) {
+            view->video().position = QG_GraphicView::Video::Position::doc_centered;
+        }
+        else if (radio_doc_upperleft->isChecked()) {
+            view->video().position = QG_GraphicView::Video::Position::doc_upperleft;
+        }
+        else if (radio_view_centered->isChecked()) {
+            view->video().position = QG_GraphicView::Video::Position::view_centered;
+        }
+        else if (radio_view_upperleft->isChecked()) {
+            view->video().position = QG_GraphicView::Video::Position::view_upperleft;
+        }
+    }
+}
+
 void QG_VideoWidget::on_check_off_x_changed(int) {
     if (!view)
         return;
@@ -440,45 +511,43 @@ void QG_VideoWidget::on_check_zoom_changed(int) {
 
 void QG_VideoWidget::on_off_x_changed(bool slider, int val) {
     static bool in_use = false;
-    if (!view)
+    if (in_use)
         return;
     in_use = true;
-    view->video().off_x = val;
+    if (view)
+        view->video().off_x = val;
     if (slider) {
         spin_off_x->setValue(val);
     }
-    else {
+    else
         slider_off_x->setValue(val);
-    }
     in_use = false;
 }
 
 void QG_VideoWidget::on_off_y_changed(bool slider, int val) {
     static bool in_use = false;
-    if (!view)
+    if (in_use)
         return;
     in_use = true;
-    view->video().off_y = val;
-    if (slider) {
+    if (view)
+        view->video().off_y = val;
+    if (slider)
         spin_off_y->setValue(val);
-    }
-    else {
+    else
         slider_off_y->setValue(val);
-    }
     in_use = false;
 }
 
 void QG_VideoWidget::on_zoom_changed(bool slider, int val) {
     static bool in_use = false;
-    if (!view)
+    if (in_use)
         return;
     in_use = true;
-    view->video().zoom = val;
-    if (slider) {
+    if (view)
+        view->video().zoom = val;
+    if (slider)
         spin_zoom->setValue(val);
-    }
-    else {
+    else
         slider_zoom->setValue(val);
-    }
     in_use = false;
 }

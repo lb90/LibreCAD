@@ -67,6 +67,7 @@ private:
 
 private:
     void set_source_part_enabled(bool);
+    void set_playing_part_enabled(bool arg);
 
     void on_stopped();
     void on_paused();
@@ -80,6 +81,8 @@ private:
     void play();
 
 private:
+    void on_radio_position_toggled(bool);
+
     void on_check_off_x_changed(int);
     void on_check_off_y_changed(int);
     void on_check_zoom_changed(int);
