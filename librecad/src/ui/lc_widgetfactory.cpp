@@ -314,7 +314,7 @@ void LC_WidgetFactory::createRightSidebar(QG_ActionHandler* action_handler)
             main_window, SLOT(modifyCommandTitleBar(Qt::DockWidgetArea)));
 
     QDockWidget* dock_video = new QDockWidget(main_window);
-    dock_video->setWindowTitle(QC_ApplicationWindow::tr("Video Integration"));
+    dock_video->setWindowTitle(QC_ApplicationWindow::tr("Integrazione Video"));
     dock_video->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
     dock_video->setObjectName("video_dockwidget");
     video_widget = new QG_VideoWidget(dock_video, "Video");

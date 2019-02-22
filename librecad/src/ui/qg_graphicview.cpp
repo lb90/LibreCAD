@@ -948,36 +948,74 @@ void QG_GraphicView::paintEvent(QPaintEvent *)
         QImage *image = videomoniker.get_image();
         if (image) {
             switch (video_.position) {
-                case Video::Position::view_centered: {
-                    QRect src_rect {0,0,image->width(),image->height()};
-                    QRect dst_rect {0,0,getWidth(),getHeight()};
-                    if (image->width() > getWidth()) {
-                        src_rect.setX((image->width()-getWidth())/2);
-                        src_rect.setWidth(getWidth());
-                    }
-                    else {
-                        dst_rect.setX((getWidth()-image->width())/2);
-                        dst_rect.setWidth(image->width());
-                    }
-                    if (image->height() > getHeight()) {
-                        src_rect.setY((image->height()-getHeight())/2);
-                        src_rect.setHeight(getHeight());
-                    }
-                    else {
-                        dst_rect.setY((getHeight()-image->height())/2);
-                        dst_rect.setHeight(image->height());
-                    }
+                case Video::Position::doc_upperleft: {
+                    if (video_.zoom_set) {
 
-                    wPainter.drawImage(dst_rect, *image, src_rect);
+                    }
+                    else {
+
+                    }
+                }
+                break;
+                case Video::Position::view_centered: {
+                    int off_x = video_.off_x_set ? video_.off_x : 0;
+                    int off_y = video_.off_y_set ? video_.off_y : 0;
+                    if (video_.zoom_set) {
+                        float videofactor = 1.0f + float(video_.zoom) * (video_.zoom>=0? 0.1f : 0.01f);
+                        /*TODO possiamo fare a meno di QImage::scaled()?*/
+                        QImage image_scaled = image->scaled(image->width()*videofactor, image->height()*videofactor);
+                        QRect src_rect {0,0,image_scaled.width(),image_scaled.height()};
+                        QRect dst_rect {0,0,getWidth(),getHeight()};
+                        if (image_scaled.width() > getWidth()) {
+                            src_rect.setX((image_scaled.width()-getWidth())/2 + off_x);
+                            src_rect.setWidth(getWidth());
+                        }
+                        else {
+                            dst_rect.setX((getWidth()-image_scaled.width())/2 + off_x);
+                            dst_rect.setWidth(image_scaled.width());
+                        }
+                        if (image_scaled.height() > getHeight()) {
+                            src_rect.setY((image_scaled.height()-getHeight())/2 + off_y);
+                            src_rect.setHeight(getHeight());
+                        }
+                        else {
+                            dst_rect.setY((getHeight()-image_scaled.height())/2 + off_y);
+                            dst_rect.setHeight(image_scaled.height());
+                        }
+                        wPainter.drawImage(dst_rect, image_scaled, src_rect);
+                    }
+                    else {
+                        QRect src_rect {0,0,image->width(),image->height()};
+                        QRect dst_rect {0,0,getWidth(),getHeight()};
+                        if (image->width() > getWidth()) {
+                            src_rect.setX((image->width()-getWidth())/2 + off_x);
+                            src_rect.setWidth(getWidth());
+                        }
+                        else {
+                            dst_rect.setX((getWidth()-image->width())/2 + off_x);
+                            dst_rect.setWidth(image->width());
+                        }
+                        if (image->height() > getHeight()) {
+                            src_rect.setY((image->height()-getHeight())/2 + off_y);
+                            src_rect.setHeight(getHeight());
+                        }
+                        else {
+                            dst_rect.setY((getHeight()-image->height())/2 + off_y);
+                            dst_rect.setHeight(image->height());
+                        }
+                        wPainter.drawImage(dst_rect, *image, src_rect);
+                    }
                 }
                 break;
                 case Video::Position::doc_centered: {
+                    int off_x = video_.off_x_set ? video_.off_x : 0;
+                    int off_y = video_.off_y_set ? video_.off_y : 0;
                     if (video_.zoom_set) {
-                        float videofactor = 1.0;
+                        float videofactor = 1.0f + float(video_.zoom) * (video_.zoom>=0? 0.1f : 0.01f);
                         QPointF c(toGui(RS_Vector(0,0)).x, toGui(RS_Vector(0,0)).y);
                         QPointF p(c.x() - videofactor*image->width()/2, c.y() - videofactor*image->height()/2);
                         if (p.x() < getWidth() && p.y() < getHeight()) {
-                            wPainter.drawImage(QRectF(p, QSizeF(videofactor*image->width(),videofactor*image->height())),
+                            wPainter.drawImage(QRectF(p+QPoint(off_x,off_y), QSizeF(videofactor*image->width(),videofactor*image->height())),
                                                *image,
                                                QRectF(0.0,0.0,image->width(),image->height()));
                         }
@@ -986,7 +1024,7 @@ void QG_GraphicView::paintEvent(QPaintEvent *)
                         QPoint c(toGui(RS_Vector(0,0)).x, toGui(RS_Vector(0,0)).y);
                         QPoint p(c.x() - image->width()/2, c.y() - image->height()/2);
                         if (p.x() < getWidth() && p.y() < getHeight()) {
-                            wPainter.drawImage(QRect(p, QSize(image->width(),image->height())),
+                            wPainter.drawImage(QRect(p+QPoint(off_x,off_y), QSize(image->width(),image->height())),
                                                *image,
                                                QRect(0.0,0.0,image->width(),image->height()));
                         }
@@ -994,12 +1032,14 @@ void QG_GraphicView::paintEvent(QPaintEvent *)
                 }
                 break;
                 case Video::Position::view_upperleft: {
+                    int off_x = video_.off_x_set ? video_.off_x : 0;
+                    int off_y = video_.off_y_set ? video_.off_y : 0;
                     if (video_.zoom_set) {
-                        float videofactor = 1.0;
-                        wPainter.drawImage(QRectF(0,0,videofactor*image->width(),videofactor*image->height()), *image);
+                        float videofactor = 1.0f + float(video_.zoom) * (video_.zoom>=0? 0.1f : 0.01f);
+                        wPainter.drawImage(QRectF(off_x,off_y,videofactor*image->width(),videofactor*image->height()), *image);
                     }
                     else {
-                        wPainter.drawImage(QPoint(0,0), *image);
+                        wPainter.drawImage(QPoint(off_x,off_y), *image);
                     }
                 }
                 break;

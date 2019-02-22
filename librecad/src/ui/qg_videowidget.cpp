@@ -132,12 +132,12 @@ QG_VideoWidget::QG_VideoWidget(QWidget *parent,
     vbox_off_zoom->addWidget(make_widget(hbox_off_x));
     vbox_off_zoom->addWidget(make_widget(hbox_off_y));
     vbox_off_zoom->addWidget(make_widget(hbox_zoom));
-    slider_off_x->setRange(-100,100);
-    slider_off_y->setRange(-100,100);
-    slider_zoom->setRange(-100,100);
-    spin_off_x->setRange(-100,100);
-    spin_off_y->setRange(-100,100);
-    spin_zoom->setRange(-100,100);
+    slider_off_x->setRange(-1000,1000);
+    slider_off_y->setRange(-1000,1000);
+    slider_zoom->setRange(-90,90);
+    spin_off_x->setRange(-1000,1000);
+    spin_off_y->setRange(-1000,1000);
+    spin_zoom->setRange(-90,90);
     connect(check_off_x, &QCheckBox::stateChanged, this, &QG_VideoWidget::on_check_off_x_changed);
     connect(check_off_y, &QCheckBox::stateChanged, this, &QG_VideoWidget::on_check_off_y_changed);
     connect(check_zoom, &QCheckBox::stateChanged, this, &QG_VideoWidget::on_check_zoom_changed);
@@ -349,6 +349,9 @@ void QG_VideoWidget::setGraphicView(QG_GraphicView* graphicView) {
     check_off_x->setChecked(view->video().off_x_set);
     check_off_y->setChecked(view->video().off_y_set);
     check_zoom->setChecked(view->video().zoom_set);
+    emit check_off_x->stateChanged(check_off_x->checkState());
+    emit check_off_y->stateChanged(check_off_y->checkState());
+    emit check_zoom->stateChanged(check_zoom->checkState());
     slider_off_x->setValue(view->video().off_x);
     slider_off_y->setValue(view->video().off_y);
     slider_zoom->setValue(view->video().zoom);
@@ -505,7 +508,7 @@ void QG_VideoWidget::on_check_zoom_changed(int) {
     else {
         slider_zoom->setEnabled(false);
         spin_zoom->setEnabled(false);
-        view->video().zoom = false;
+        view->video().zoom_set = false;
     }
 }
 
